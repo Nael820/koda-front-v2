@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Connexion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <img src="img/trace.png" class="fixed top-0 right-0 w-64 pointer-events-none opacity-10" alt="" />
+  <img src="img/bottle.png" class="fixed bottom-0 left-0 w-64 pointer-events-none opacity-10" alt="" />
+
+  <div class="relative z-10 flex flex-col flex-1 px-7 pt-14 pb-10 max-w-md w-full mx-auto">
+
+    <div class="grid grid-cols-2 items-center mb-10">
+      <div>
+        <h1 class="text-3xl mb-2" style="font-family: 'Rammetto One', cursive; color: #2D241F; line-height:1.2">Bienvenue<br>sur Koda</h1>
+        <p class="text-sm" style="color:#7a6255">Connecte-toi pour continuer</p>
+      </div>
+      <div class="flex justify-center">
+        <img src="img/mascotte.png" alt="mascotte" class="w-36 h-36 object-contain" />
+      </div>
+    </div>
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">PSEUDO</label>
+    <input id="username" type="text" placeholder="Ton pseudo"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-4 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">MOT DE PASSE</label>
+    <input id="password" type="password" placeholder="••••••••••"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-2 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <a href="forgot-password.html" class="text-xs text-right block mb-7" style="color:#7a6255">Mot de passe oublié ?</a>
+
+    <button id="btn-login"
+      class="w-full py-4 rounded-2xl font-bold tracking-wide text-sm mb-4 border border-[#2D241F] text-[#2D241F] bg-transparent hover:bg-gray-50 active:bg-gray-100 transition-colors">
+      SE CONNECTER
+    </button>
+
+    <div class="flex items-center gap-3 mb-4">
+      <div class="flex-1 h-px bg-gray-300"></div>
+      <span class="text-xs text-gray-400">ou</span>
+      <div class="flex-1 h-px bg-gray-300"></div>
+    </div>
+
+    <button id="btn-register"
+      class="w-full py-4 rounded-2xl font-bold tracking-wide text-sm border border-[#2D241F] text-[#2D241F] bg-transparent hover:bg-gray-50 active:bg-gray-100 transition-colors">
+      CRÉER UN COMPTE
+    </button>
+
+    <p id="error-msg" class="text-xs text-center mt-4 min-h-5" style="color:#A50329"></p>
+
+  </div>
+
+  <script type="module">
+    import { login } from "./js/auth.js";
+
+    const btnLogin = document.getElementById("btn-login");
+    const btnRegister = document.getElementById("btn-register");
+    const errorMsg = document.getElementById("error-msg");
+
+    btnLogin.addEventListener("click", async () => {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+      errorMsg.textContent = "";
+
+      if (!username || !password) {
+        errorMsg.textContent = "Remplis tous les champs.";
+        return;
+      }
+
+      btnLogin.textContent = "Connexion...";
+      btnLogin.disabled = true;
+
+      try {
+        await login(username, password);
+        window.location.href = "index.html";
+      } catch (e) {
+        errorMsg.textContent = e.message || "Identifiants incorrects.";
+      } finally {
+        btnLogin.textContent = "SE CONNECTER";
+        btnLogin.disabled = false;
+      }
+    });
+
+    btnRegister.addEventListener("click", () => {
+      window.location.href = "register.html";
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") btnLogin.click();
+    });
+  </script>
+
+</body>
+</html>

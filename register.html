@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Inscription</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <img src="img/trace.png" class="fixed top-0 right-0 w-64 pointer-events-none opacity-10" alt="" />
+  <img src="img/bottle.png" class="fixed bottom-0 left-0 w-64 pointer-events-none opacity-10" alt="" />
+
+  <div class="relative z-10 flex flex-col flex-1 px-7 pt-14 pb-10 max-w-md w-full mx-auto">
+
+    <a href="login.html" class="flex items-center gap-2 text-sm mb-10" style="color:#7a6255">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Retour
+    </a>
+
+    <h1 class="text-3xl mb-2" style="font-family: 'Rammetto One', cursive; color: #2D241F; line-height:1.2">Créer un<br>compte</h1>
+    <p class="text-sm mb-10" style="color:#7a6255">Rejoins la communauté</p>
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">PSEUDO</label>
+    <input id="username" type="text" placeholder="Ton pseudo"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-4 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">EMAIL</label>
+    <input id="email" type="email" placeholder="Ton email"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-4 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">MOT DE PASSE</label>
+    <input id="password" type="password" placeholder="••••••••••"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-4 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <label class="text-xs font-semibold tracking-widest mb-2 block" style="color:#2D241F">CONFIRMER LE MOT DE PASSE</label>
+    <input id="password-confirm" type="password" placeholder="••••••••••"
+      class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm mb-8 outline-none focus:border-[#B4C8C5] transition-colors" />
+
+    <button id="btn-register"
+      class="w-full py-4 rounded-2xl font-bold tracking-wide text-sm mb-4 border border-[#2D241F] text-[#2D241F] bg-transparent hover:bg-gray-50 active:bg-gray-100 transition-colors">
+      CRÉER MON COMPTE
+    </button>
+
+    <p id="error-msg" class="text-xs text-center mt-2 min-h-5" style="color:#A50329"></p>
+
+  </div>
+
+  <script type="module">
+    import { register } from "./js/auth.js";
+
+    const btnRegister = document.getElementById("btn-register");
+    const errorMsg = document.getElementById("error-msg");
+
+    btnRegister.addEventListener("click", async () => {
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const passwordConfirm = document.getElementById("password-confirm").value;
+      errorMsg.textContent = "";
+
+      if (!username || !email || !password || !passwordConfirm) {
+        errorMsg.textContent = "Remplis tous les champs.";
+        return;
+      }
+
+      if (password !== passwordConfirm) {
+        errorMsg.textContent = "Les mots de passe ne correspondent pas.";
+        return;
+      }
+
+      btnRegister.textContent = "Création...";
+      btnRegister.disabled = true;
+
+      try {
+        await register({ username, mail: email, password });
+        window.location.href = "login.html";
+      } catch (e) {
+        errorMsg.textContent = e.message || "Une erreur est survenue.";
+      } finally {
+        btnRegister.textContent = "CRÉER MON COMPTE";
+        btnRegister.disabled = false;
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") btnRegister.click();
+    });
+  </script>
+
+</body>
+</html>

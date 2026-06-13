@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Profil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="w-full relative flex items-center justify-between px-5" style="background:#F1D9C8; height: 60px;">
+    <div class="flex items-center gap-4 z-10">
+      <a href="#">
+        <img src="img/assets/loop.png" alt="recherche" class="w-6 h-6 object-contain" />
+      </a>
+      <a href="#">
+        <img src="img/assets/qr.png" alt="qr code" class="w-6 h-6 object-contain" />
+      </a>
+    </div>
+    <div class="absolute left-1/2 -translate-x-1/2">
+      <span style="font-family: 'Rammetto One', cursive; color: #255B54; font-size: 20px;">PROFIL</span>
+    </div>
+    <div class="flex items-center z-10">
+      <a href="settings.html">
+        <img src="img/assets/param.png" alt="paramètres" class="w-6 h-6 object-contain" />
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 pb-32">
+
+    <!-- Bannière + Avatar -->
+    <div class="relative mb-16">
+      <div class="w-full h-36 overflow-hidden" style="background:#e8cebb;">
+        <img id="banner-img" src="" alt="bannière" class="w-full h-full object-cover hidden" />
+      </div>
+      <div class="absolute left-1/2 -translate-x-1/2 -bottom-10">
+        <div class="w-20 h-20 rounded-full border-4 border-white overflow-hidden" style="background:#d4b9a8;">
+          <img id="avatar-img" src="" alt="avatar" class="w-full h-full object-cover hidden" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Infos -->
+    <div class="flex flex-col items-center px-5 mb-5">
+      <p id="pseudo" class="text-sm mb-1" style="color:#7a6255;">@pseudo</p>
+      <h1 id="fullname" class="text-xl font-bold mb-1 text-center" style="color:#fff; background:#A50329; border-radius: 10px; padding: 4px 18px; font-family: 'Rammetto One', cursive;"></h1>
+    </div>
+
+    <!-- Bio -->
+    <div class="mx-5 mb-5 rounded-2xl px-4 py-4" style="background:#f7f7f7;">
+      <p id="bio" class="text-sm" style="color:#2D241F;">Aucune biographie renseignée.</p>
+    </div>
+
+    <!-- Tags -->
+    <div id="tags-container" class="flex flex-wrap gap-2 px-5 mb-6">
+      <!-- tags chargés dynamiquement -->
+    </div>
+
+  </main>
+
+  <!-- FOOTER FIXE -->
+  <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
+        <img src="img/assets/user.png" alt="profil" class="w-9 h-9 object-contain" />
+      </div>
+    </a>
+
+  </footer>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+
+    if (!getToken()) window.location.href = "login.html";
+
+    async function loadProfile() {
+      const user = await apiRequest("/users/me");
+
+      // Pseudo
+      document.getElementById("pseudo").textContent = `@${user.username}`;
+
+      // Nom complet ou pseudo si pas de nom
+      const fullname = (user.firstname || user.lastname)
+        ? `${user.firstname ?? ""} ${user.lastname ?? ""}`.trim()
+        : user.username;
+      document.getElementById("fullname").textContent = fullname;
+
+      // Stats supprimées
+
+      // Bio
+      if (user.bio) {
+        document.getElementById("bio").textContent = user.bio;
+      }
+
+      // Tags
+      if (user.tags) {
+        try {
+          const tags = JSON.parse(user.tags);
+          const container = document.getElementById("tags-container");
+          container.innerHTML = tags.map(tag => `
+            <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:#F1D9C8; color:#2D241F;">
+              ${tag}
+            </span>
+          `).join("");
+        } catch (_) {}
+      }
+
+      // Avatar
+      if (user.avatar) {
+        const img = document.getElementById("avatar-img");
+        img.src = `${API_URL}${user.avatar}`;
+        img.classList.remove("hidden");
+      }
+
+      // Bannière
+      if (user.banner) {
+        const img = document.getElementById("banner-img");
+        img.src = `${API_URL}${user.banner}`;
+        img.classList.remove("hidden");
+      }
+    }
+
+    loadProfile().catch(console.error);
+  </script>
+
+</body>
+</html>
