@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Nouveau groupe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen flex flex-col" style="background:#f7f7f5;">
+
+  <!-- HEADER -->
+  <header class="w-full flex items-center justify-between px-5" style="background:#2D241F; height: 60px;">
+    <a href="groupe.html">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <span style="font-family: 'Rammetto One', cursive; color:#fff; font-size: 16px;">NOUVEAU GROUPE</span>
+    <div class="w-6"></div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-32">
+
+    <!-- Nom du groupe -->
+    <input id="group-name" type="text" placeholder="Nom du groupe..."
+      class="w-full px-4 py-3.5 rounded-2xl text-sm font-semibold outline-none mb-5"
+      style="background:#255B54; color:#fff; border:none;"
+      oninput="this.style.color = this.value ? '#fff' : 'rgba(255,255,255,0.5)'" />
+
+    <!-- Recherche membres -->
+    <div class="relative mb-5">
+      <input id="search-input" type="text" placeholder="Rechercher..."
+        class="w-full px-4 py-3 rounded-2xl text-sm outline-none"
+        style="background:#e8e0d8; border:none;" />
+      <svg class="absolute right-4 top-1/2 -translate-y-1/2 opacity-40" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+      </svg>
+    </div>
+
+    <!-- Membres sélectionnés -->
+    <div id="selected-members" class="flex gap-4 mb-6 overflow-x-auto pb-2" style="min-height: 80px;"></div>
+
+    <!-- Suggestions -->
+    <p class="font-bold text-sm mb-4" style="color:#2D241F;">Suggestions</p>
+    <div id="friends-list"></div>
+
+    <!-- Message erreur -->
+    <p id="error-msg" class="text-xs text-center mt-4" style="color:#A50329; min-height:16px;"></p>
+
+  </main>
+
+  <!-- BOUTON CRÉER -->
+  <div class="fixed bottom-6 left-0 right-0 px-5 max-w-md mx-auto">
+    <button id="btn-create"
+      class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide text-white transition-opacity"
+      style="background:#A50329; font-family: 'Rammetto One', cursive;">
+      CRÉER UN GROUPE
+    </button>
+  </div>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+
+    if (!getToken()) window.location.href = "login.html";
+
+    let selectedMembers = []; // { id, username, avatar }
+    let allFriends = [];
+
+    // Charge la liste des amis
+    async function loadFriends() {
+      try {
+        const friends = await apiRequest("/friends/list");
+        allFriends = friends;
+        renderFriendsList(friends);
+      } catch (e) {
+        document.getElementById("friends-list").innerHTML =
+          `<p class="text-sm" style="color:#7a6255;">Impossible de charger les amis.</p>`;
+      }
+    }
+
+    function renderFriendsList(friends) {
+      const container = document.getElementById("friends-list");
+      if (!friends.length) {
+        container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun ami trouvé.</p>`;
+        return;
+      }
+      container.innerHTML = friends.map(f => {
+        const isSelected = selectedMembers.some(m => m.id === f.id);
+        return `
+          <div class="flex items-center justify-between py-3 border-b border-gray-100" id="friend-row-${f.id}">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0" style="background:#e8cebb;">
+                ${f.avatar ? `<img src="${API_URL}${f.avatar}" class="w-full h-full object-cover" />` : ''}
+              </div>
+              <div>
+                <p class="font-bold text-sm" style="color:#2D241F;">${f.firstname || f.lastname ? `${f.firstname ?? ''} ${f.lastname ?? ''}`.trim() : f.username}</p>
+                <p class="text-xs" style="color:#7a6255;">@${f.username}</p>
+              </div>
+            </div>
+            <button onclick="toggleMember(${f.id}, '${f.username}', '${f.avatar ?? ''}')"
+              id="check-${f.id}"
+              style="width:28px; height:28px; border-radius:50%; border:2px solid ${isSelected ? '#255B54' : '#ccc'}; background:${isSelected ? '#255B54' : 'transparent'}; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+              ${isSelected ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </button>
+          </div>`;
+      }).join("");
+    }
+
+    // Ajouter/retirer un membre
+    window.toggleMember = (id, username, avatar) => {
+      const idx = selectedMembers.findIndex(m => m.id === id);
+      if (idx !== -1) {
+        selectedMembers.splice(idx, 1);
+      } else {
+        selectedMembers.push({ id, username, avatar });
+      }
+      renderSelectedMembers();
+      renderFriendsList(getCurrentFilteredFriends());
+    };
+
+    function getCurrentFilteredFriends() {
+      const q = document.getElementById("search-input").value.toLowerCase();
+      return q ? allFriends.filter(f => f.username.toLowerCase().includes(q)) : allFriends;
+    }
+
+    function renderSelectedMembers() {
+      const container = document.getElementById("selected-members");
+      if (!selectedMembers.length) {
+        container.innerHTML = "";
+        return;
+      }
+      container.innerHTML = selectedMembers.map(m => `
+        <div class="flex flex-col items-center flex-shrink-0" style="padding-top: 8px;">
+          <div class="relative" style="width:56px; height:56px;">
+            <div class="w-14 h-14 rounded-full overflow-hidden" style="background:#e8cebb;">
+              ${m.avatar ? `<img src="${API_URL}${m.avatar}" class="w-full h-full object-cover" />` : ''}
+            </div>
+            <button onclick="toggleMember(${m.id}, '${m.username}', '${m.avatar}')"
+              style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#A50329; border:2px solid #fff; color:white; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer;">✕</button>
+          </div>
+          <p class="text-xs mt-1 text-center truncate" style="color:#2D241F; max-width:56px;">${m.username}</p>
+        </div>
+      `).join("");
+    }
+
+    // Recherche
+    document.getElementById("search-input").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = q ? allFriends.filter(f => f.username.toLowerCase().includes(q)) : allFriends;
+      renderFriendsList(filtered);
+    });
+
+    // Créer le groupe
+    document.getElementById("btn-create").addEventListener("click", async () => {
+      const name = document.getElementById("group-name").value.trim();
+      const errorMsg = document.getElementById("error-msg");
+      errorMsg.textContent = "";
+
+      if (!name) {
+        errorMsg.textContent = "Donne un nom à ton groupe.";
+        return;
+      }
+
+      const btn = document.getElementById("btn-create");
+      btn.textContent = "Création...";
+      btn.disabled = true;
+
+      try {
+        // Créer le groupe
+        const group = await apiRequest("/groups/create", {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        });
+
+        // Inviter les membres sélectionnés
+        for (const member of selectedMembers) {
+          try {
+            await apiRequest("/groups/addUser", {
+              method: "POST",
+              body: JSON.stringify({ id: group.id, username: member.username }),
+            });
+          } catch (_) {}
+        }
+
+        window.location.href = "groupe.html";
+
+      } catch (e) {
+        errorMsg.textContent = e.message || "Une erreur est survenue.";
+        btn.textContent = "CRÉER UN GROUPE";
+        btn.disabled = false;
+      }
+    });
+
+    loadFriends();
+  </script>
+
+</body>
+</html>

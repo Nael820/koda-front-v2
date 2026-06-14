@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Amis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="w-full relative flex items-center justify-between px-5 pt-4 pb-0" style="background:#F1D9C8; height: 90px;">
+    <div class="flex items-center gap-4 z-10">
+      <a href="profil.html">
+        <img src="img/assets/user.png" alt="profil" class="w-6 h-6 object-contain" />
+      </a>
+      <a href="#">
+        <img src="img/assets/loop.png" alt="recherche" class="w-6 h-6 object-contain" />
+      </a>
+    </div>
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end justify-center">
+      <img src="img/mascotte_entete.png" alt="mascotte" class="h-20 object-contain" />
+    </div>
+    <div class="flex items-center z-10">
+      <a href="notifications.html" class="relative">
+        <img src="img/assets/bell.png" alt="notifications" class="w-6 h-6 object-contain" />
+        <span id="notif-count" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-xs flex items-center justify-center" style="background:#A50329; font-size:9px;"></span>
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-32">
+
+    <!-- Recherche -->
+    <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">RECHERCHER UN UTILISATEUR</p>
+    <div class="flex gap-2 mb-6">
+      <input id="search-input" type="text" placeholder="Recherche par pseudo..."
+        class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#B4C8C5] transition-colors" />
+      <button id="btn-search"
+        class="px-4 py-3 rounded-xl font-bold text-sm border border-[#2D241F] text-[#2D241F] hover:bg-gray-50 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Résultats recherche -->
+    <div id="search-results" class="mb-8"></div>
+
+    <!-- Bouton voir mes amis -->
+    <button id="btn-voir-amis"
+      class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide mb-6"
+      style="background:#B4C8C5; color:#2D241F; font-family: 'Rammetto One', cursive;">
+      VOIR MES AMIS
+    </button>
+
+    <!-- Liste amis -->
+    <div id="friends-list" class="hidden">
+      <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">MES AMIS</p>
+      <div id="friends-container"></div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER FIXE -->
+  <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
+      </div>
+    </a>
+
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+  </footer>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+
+    if (!getToken()) window.location.href = "login.html";
+
+    // Notif count
+    async function loadNotifCount() {
+      try {
+        const data = await apiRequest("/friends/pending/count");
+        const badge = document.getElementById("notif-count");
+        if (data.count > 0) {
+          badge.textContent = data.count;
+          badge.classList.remove("hidden");
+        }
+      } catch (_) {}
+    }
+
+    // Recherche utilisateur
+    document.getElementById("btn-search").addEventListener("click", async () => {
+      const query = document.getElementById("search-input").value.trim();
+      if (!query) return;
+
+      const container = document.getElementById("search-results");
+      container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Recherche en cours...</p>`;
+
+      try {
+        const users = await apiRequest(`/friends/search?username=${encodeURIComponent(query)}`);
+
+        if (!users.length) {
+          container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun utilisateur trouvé.</p>`;
+          return;
+        }
+
+        container.innerHTML = users.map(u => `
+          <div class="flex items-center justify-between py-3 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full overflow-hidden" style="background:#e8cebb;">
+                ${u.avatar ? `<img src="${API_URL}${u.avatar}" class="w-full h-full object-cover" />` : ''}
+              </div>
+              <div>
+                <p class="font-semibold text-sm" style="color:#2D241F;">@${u.username}</p>
+                ${u.firstname || u.lastname ? `<p class="text-xs" style="color:#7a6255;">${u.firstname ?? ''} ${u.lastname ?? ''}</p>` : ''}
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="viewProfile(${u.id})"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 hover:bg-gray-50 transition-colors" style="color:#2D241F;">
+                Voir
+              </button>
+              <button onclick="sendRequest(${u.id}, this)"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors" style="border-color:#255B54; color:#255B54;">
+                + Ami
+              </button>
+            </div>
+          </div>
+        `).join("");
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+      }
+    });
+
+    // Recherche avec Enter
+    document.getElementById("search-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("btn-search").click();
+    });
+
+    // Envoyer une demande d'ami
+    window.sendRequest = async (userId, btn) => {
+      try {
+        await apiRequest(`/friends/request/${userId}`, { method: "POST" });
+        btn.textContent = "✓ Envoyé";
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+      } catch (e) {
+        btn.textContent = "Déjà ami";
+        btn.disabled = true;
+      }
+    };
+
+    // Voir profil
+    window.viewProfile = (userId) => {
+      window.location.href = `userprofil.html#${userId}`;
+    };
+
+    // Voir mes amis
+    let friendsVisible = false;
+    document.getElementById("btn-voir-amis").addEventListener("click", async () => {
+      const container = document.getElementById("friends-container");
+      const section = document.getElementById("friends-list");
+
+      if (friendsVisible) {
+        section.classList.add("hidden");
+        friendsVisible = false;
+        document.getElementById("btn-voir-amis").textContent = "VOIR MES AMIS";
+        return;
+      }
+
+      try {
+        const friends = await apiRequest("/friends/list");
+        if (!friends.length) {
+          container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Tu n'as pas encore d'amis.</p>`;
+        } else {
+          container.innerHTML = friends.map(u => `
+            <div class="flex items-center gap-3 py-3 border-b border-gray-100">
+              <div class="w-10 h-10 rounded-full overflow-hidden" style="background:#e8cebb;">
+                ${u.avatar ? `<img src="${API_URL}${u.avatar}" class="w-full h-full object-cover" />` : ''}
+              </div>
+              <div>
+                <p class="font-semibold text-sm" style="color:#2D241F;">@${u.username}</p>
+                ${u.firstname || u.lastname ? `<p class="text-xs" style="color:#7a6255;">${u.firstname ?? ''} ${u.lastname ?? ''}</p>` : ''}
+              </div>
+            </div>
+          `).join("");
+        }
+        section.classList.remove("hidden");
+        friendsVisible = true;
+        document.getElementById("btn-voir-amis").textContent = "MASQUER MES AMIS";
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+        section.classList.remove("hidden");
+      }
+    });
+
+    loadNotifCount();
+  </script>
+
+</body>
+</html>

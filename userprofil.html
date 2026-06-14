@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Profil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="w-full relative flex items-center justify-between px-5 pt-4 pb-0" style="background:#F1D9C8; height: 90px;">
+    <div class="flex items-center gap-4 z-10">
+      <a href="javascript:history.back()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </a>
+    </div>
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end justify-center">
+      <img src="img/mascotte_entete.png" alt="mascotte" class="h-20 object-contain" />
+    </div>
+    <div class="flex items-center z-10">
+      <a href="notifications.html" class="relative">
+        <img src="img/assets/bell.png" alt="notifications" class="w-6 h-6 object-contain" />
+        <span id="notif-count" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full text-white flex items-center justify-center" style="background:#A50329; font-size:9px;"></span>
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 pb-32">
+
+    <div class="relative mb-16">
+      <div class="w-full h-36 overflow-hidden" style="background:#e8cebb;">
+        <img id="banner-img" src="" alt="bannière" class="w-full h-full object-cover hidden" />
+      </div>
+      <div class="absolute left-1/2 -translate-x-1/2 -bottom-10">
+        <div class="w-20 h-20 rounded-full border-4 border-white overflow-hidden" style="background:#d4b9a8;">
+          <img id="avatar-img" src="" alt="avatar" class="w-full h-full object-cover hidden" />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-center px-5 mb-5">
+      <p id="pseudo" class="text-sm mb-1" style="color:#7a6255;">@pseudo</p>
+      <h1 id="fullname" class="text-xl font-bold mb-4 text-center px-4 py-1 rounded-xl" style="color:#fff; background:#A50329; font-family: 'Rammetto One', cursive;"></h1>
+      <button id="btn-relation" class="px-6 py-2.5 rounded-2xl font-bold text-sm border transition-colors" style="border-color:#255B54; color:#255B54;">
+        Chargement...
+      </button>
+    </div>
+
+    <div id="bio-section" class="mx-5 mb-5 rounded-2xl px-4 py-4 hidden" style="background:#f7f7f7;">
+      <p id="bio" class="text-sm" style="color:#2D241F;"></p>
+    </div>
+
+    <div id="tags-container" class="flex flex-wrap gap-2 px-5 mb-6"></div>
+
+  </main>
+
+  <!-- FOOTER FIXE -->
+  <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+  </footer>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+
+    if (!getToken()) {
+      window.location.href = "login.html";
+    } else {
+      const userId = window.location.hash.replace("#", "");
+
+      if (!userId) {
+        window.location.href = "index.html";
+      } else {
+
+        async function loadNotifCount() {
+          try {
+            const data = await apiRequest("/friends/pending/count");
+            const badge = document.getElementById("notif-count");
+            if (data.count > 0) {
+              badge.textContent = data.count;
+              badge.classList.remove("hidden");
+            }
+          } catch (_) {}
+        }
+
+        async function loadUser() {
+          const user = await apiRequest(`/users/${userId}`);
+          document.getElementById("pseudo").textContent = `@${user.username}`;
+          const fullname = (user.firstname || user.lastname)
+            ? `${user.firstname ?? ""} ${user.lastname ?? ""}`.trim()
+            : user.username;
+          document.getElementById("fullname").textContent = fullname;
+          if (user.bio) {
+            document.getElementById("bio").textContent = user.bio;
+            document.getElementById("bio-section").classList.remove("hidden");
+          }
+          if (user.tags) {
+            try {
+              const tags = JSON.parse(user.tags);
+              document.getElementById("tags-container").innerHTML = tags.map(tag => `
+                <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:#F1D9C8; color:#2D241F;">${tag}</span>
+              `).join("");
+            } catch (_) {}
+          }
+          if (user.avatar) {
+            const img = document.getElementById("avatar-img");
+            img.src = `${API_URL}${user.avatar}`;
+            img.classList.remove("hidden");
+          }
+          if (user.banner) {
+            const img = document.getElementById("banner-img");
+            img.src = `${API_URL}${user.banner}`;
+            img.classList.remove("hidden");
+          }
+        }
+
+        async function loadRelation() {
+          const btn = document.getElementById("btn-relation");
+          try {
+            const friends = await apiRequest("/friends/list");
+            const isFriend = friends.some(f => f.id === Number(userId));
+            if (isFriend) {
+              btn.textContent = "✓ Ami";
+              btn.disabled = true;
+              btn.style.opacity = "0.6";
+              return;
+            }
+
+            const pending = await apiRequest("/friends/pending");
+            const hasPendingFromThem = pending.some(f => f.requester.id === Number(userId));
+            if (hasPendingFromThem) {
+              btn.textContent = "Accepter la demande";
+              btn.style.background = "#255B54";
+              btn.style.color = "#fff";
+              btn.style.borderColor = "#255B54";
+              btn.addEventListener("click", async () => {
+                await apiRequest(`/friends/accept/${userId}`, { method: "POST" });
+                btn.textContent = "✓ Ami";
+                btn.disabled = true;
+                btn.style.opacity = "0.6";
+              });
+              return;
+            }
+
+            const myPending = await apiRequest("/friends/my-pending");
+            const alreadySent = myPending.some(f => f.receiver.id === Number(userId));
+            if (alreadySent) {
+              btn.textContent = "Demande envoyée";
+              btn.disabled = true;
+              btn.style.opacity = "0.6";
+              return;
+            }
+
+btn.textContent = "+ Ajouter en ami";
+btn.addEventListener("click", async () => {
+  try {
+    await apiRequest(`/friends/request/${userId}`, { method: "POST" });
+    btn.textContent = "✓ Demande envoyée";
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    btn.style.borderColor = "#7a6255";
+    btn.style.color = "#7a6255";
+    btn.style.background = "transparent";
+
+    // Message en haut
+    const msg = document.createElement("p");
+    msg.textContent = "Demande déjà envoyée";
+    msg.style.cssText = "font-size:12px; color:#7a6255; margin-top:8px; text-align:center;";
+    btn.parentNode.insertBefore(msg, btn.nextSibling);
+
+  } catch (e) {
+    btn.textContent = "Erreur";
+  }
+});
+
+          } catch (e) {
+            btn.textContent = "+ Ajouter en ami";
+            btn.addEventListener("click", async () => {
+              await apiRequest(`/friends/request/${userId}`, { method: "POST" });
+              btn.textContent = "Demande envoyée";
+              btn.disabled = true;
+            });
+          }
+        }
+
+        loadUser();
+        loadRelation();
+        loadNotifCount();
+      }
+    }
+  </script>
+
+</body>
+</html>

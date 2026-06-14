@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Groupes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <!-- HEADER (identique à index) -->
+  <header class="w-full relative flex items-center justify-between px-5 pt-4 pb-0" style="background:#F1D9C8; height: 90px;">
+    <div class="flex items-center gap-4 z-10">
+      <a href="profil.html">
+        <img src="img/assets/user.png" alt="profil" class="w-6 h-6 object-contain" />
+      </a>
+      <a href="#">
+        <img src="img/assets/loop.png" alt="recherche" class="w-6 h-6 object-contain" />
+      </a>
+    </div>
+
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end justify-center">
+      <img src="img/mascotte_entete.png" alt="mascotte" class="h-20 object-contain" />
+    </div>
+
+    <div class="flex items-center z-10">
+      <a href="#">
+        <img src="img/assets/bell.png" alt="notifications" class="w-6 h-6 object-contain" />
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-32">
+
+    <!-- Boutons principaux -->
+    <div class="flex gap-3 mb-8">
+      <button id="btn-create-group"
+        class="flex-1 py-4 rounded-2xl font-bold text-sm tracking-wide transition-colors"
+        style="background:#B4C8C5; color:#2D241F; font-family: 'Rammetto One', cursive;">
+        CRÉER UN GROUPE
+      </button>
+      <button id="btn-mes-amis"
+        class="flex-1 py-4 rounded-2xl font-bold text-sm tracking-wide transition-colors"
+        style="background:#B4C8C5; color:#2D241F; font-family: 'Rammetto One', cursive;">
+        MES AMIS
+      </button>
+    </div>
+
+    <!-- Contenu groupes -->
+    <div id="groups-list"></div>
+
+  </main>
+
+  <!-- FOOTER FIXE (groupe actif) -->
+  <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
+      </div>
+    </a>
+
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+  </footer>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    if (!getToken()) window.location.href = "login.html";
+
+    document.getElementById("btn-create-group").addEventListener("click", () => {
+      window.location.href = "create-groupe.html";
+    });
+
+    document.getElementById("btn-mes-amis").addEventListener("click", () => {
+      window.location.href = "amis.html";
+    });
+
+    async function loadGroups() {
+      const container = document.getElementById("groups-list");
+      try {
+        const groups = await apiRequest("/groups/allUserGroups");
+
+        if (!groups.length) {
+          container.innerHTML = `<p class="text-sm text-center mt-8" style="color:#7a6255;">Tu ne fais partie d'aucun groupe pour l'instant.</p>`;
+          return;
+        }
+
+        container.innerHTML = groups.map(g => `
+          <div onclick="window.location.href='chat-groupe.html#${g.id}'"
+            class="flex items-center gap-4 py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors rounded-xl px-2 -mx-2">
+            <div class="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-lg"
+              style="background:#e8cebb; color:#2D241F;">
+              ${g.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-sm mb-1" style="color:#2D241F;">${g.name}</p>
+              <p class="text-xs truncate" style="color:#7a6255;">${g.users?.length ?? 0} membre${g.users?.length > 1 ? 's' : ''}</p>
+            </div>
+            <div class="flex-shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A50329" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+          </div>
+        `).join("");
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm text-center mt-8" style="color:#A50329;">Erreur de chargement.</p>`;
+      }
+    }
+
+    loadGroups();
+  </script>
+
+</body>
+</html>
