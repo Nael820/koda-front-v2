@@ -11,20 +11,21 @@
   <style>
     .msg-other { background: #F1D9C8; border-radius: 4px 16px 16px 16px; }
     .msg-me { background: #e8e0d8; border-radius: 16px 4px 16px 16px; }
-    #messages-container { scroll-behavior: smooth; }
+    body { overflow: hidden; }
+    #messages-container { overflow-y: auto; scroll-behavior: smooth; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col" style="background:#faf6f2;">
+<body class="flex flex-col" style="background:#faf6f2; height: 100dvh;">
 
   <!-- HEADER -->
-  <header class="w-full flex items-center justify-between px-4" style="background:#F1D9C8; height: 60px;">
+  <header class="w-full flex items-center justify-between px-4 flex-shrink-0" style="background:#F1D9C8; height: 60px;">
     <div class="flex items-center gap-2">
       <a href="groupe.html">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </a>
-      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer" style="background:#2D241F;" id="btn-group-name">
+      <div id="btn-group-name" class="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer" style="background:#2D241F;">
         <span id="group-name" class="font-bold text-sm" style="color:#F1D9C8;">Chargement...</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
           <polyline points="9 18 15 12 9 6"/>
@@ -46,24 +47,33 @@
   </header>
 
   <!-- MESSAGES -->
-  <main id="messages-container" class="flex-1 overflow-y-auto px-4 py-4 pb-24">
+  <main id="messages-container" class="flex-1 px-4 py-4" style="padding-bottom: 80px;">
     <div id="messages-list" class="flex flex-col gap-4">
       <p class="text-xs text-center" style="color:#7a6255;">Chargement des messages...</p>
     </div>
   </main>
 
   <!-- BARRE D'ENVOI -->
-  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-3 py-3" style="background:#2D241F;">
+  <div class="flex-shrink-0 px-3 py-3" style="background:#2D241F;">
     <div class="flex items-center gap-2">
-      <button class="flex-shrink-0">
+      <button class="flex-shrink-0" onclick="document.getElementById('img-input').click()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
           <circle cx="12" cy="13" r="4"/>
         </svg>
       </button>
-      <input id="msg-input" type="text" placeholder="Votre message..."
-        class="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
-        style="background:#3d322c; color:#F1D9C8; border:none;" />
+
+      <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl" style="background:#3d322c; min-height:42px;">
+        <div id="img-preview-container" class="hidden relative flex-shrink-0">
+          <img id="img-preview" src="" class="h-10 w-10 rounded-lg object-cover" />
+          <button id="btn-cancel-img" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-white" style="background:#A50329; font-size:8px;">✕</button>
+        </div>
+        <input id="msg-input" type="text" placeholder="Votre message..."
+          class="flex-1 text-sm outline-none bg-transparent"
+          style="color:#F1D9C8; border:none;" />
+      </div>
+
+      <input type="file" id="img-input" accept="image/*" class="hidden" />
       <button class="flex-shrink-0">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -72,7 +82,7 @@
           <line x1="8" y1="23" x2="16" y2="23"/>
         </svg>
       </button>
-      <button class="flex-shrink-0">
+      <button class="flex-shrink-0" onclick="document.getElementById('img-input').click()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
           <polyline points="21 15 16 10 5 21"/>
@@ -98,98 +108,158 @@
     if (!groupId) window.location.href = "groupe.html";
 
     let currentUser = null;
-    let messages = []; // stockage local des messages
+    let pollingInterval = null;
 
-    // Charge les infos du groupe
-    async function loadGroup() {
-      try {
-        const group = await apiRequest(`/groups/group/${groupId}`);
-        document.getElementById("group-name").textContent = group.name;
-      } catch (_) {}
-    }
-
-    // Charge l'utilisateur connecté
     async function loadCurrentUser() {
       currentUser = await apiRequest("/users/me");
     }
 
-    function renderMessages() {
-      const container = document.getElementById("messages-list");
+    async function loadGroup() {
+      try {
+        const group = await apiRequest(`/groups/group/${groupId}`);
+        document.getElementById("group-name").textContent = group.name;
+        document.getElementById("btn-group-name").addEventListener("click", () => {
+          window.location.href = `groupe-settings.html#${groupId}`;
+        });
+      } catch (_) {}
+    }
 
-      if (!messages.length) {
-        container.innerHTML = `<p class="text-xs text-center" style="color:#7a6255;">Aucun message pour l'instant. Dis bonjour ! 👋</p>`;
-        return;
-      }
+    function formatTime(value) {
+      return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+    }
 
-      container.innerHTML = messages.map(msg => {
-        const isMe = msg.senderId === currentUser?.id;
+    async function loadMessages() {
+      try {
+        const messages = await apiRequest(`/chat/${groupId}`);
+        const container = document.getElementById("messages-list");
 
-        if (isMe) {
-          return `
-            <div class="flex justify-end">
-              <div class="max-w-xs px-4 py-2.5 msg-me">
-                <p class="text-sm" style="color:#2D241F;">${msg.text}</p>
-                <p class="text-xs mt-1 text-right" style="color:#7a6255;">${formatTime(msg.time)}</p>
-              </div>
-            </div>`;
-        } else {
-          return `
-            <div class="flex items-end gap-2">
-              <div class="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden" style="background:#e8cebb;">
-                ${msg.senderAvatar ? `<img src="${API_URL}${msg.senderAvatar}" class="w-full h-full object-cover" />` : ''}
-              </div>
-              <div class="max-w-xs">
-                <p class="text-xs mb-1 font-semibold" style="color:#7a6255;">${msg.senderName}</p>
-                <div class="px-4 py-2.5 msg-other">
-                  <p class="text-sm" style="color:#2D241F;">${msg.text}</p>
-                  <p class="text-xs mt-1" style="color:#7a6255;">${formatTime(msg.time)}</p>
-                </div>
-              </div>
-            </div>`;
+        if (!messages.length) {
+          container.innerHTML = `<p class="text-xs text-center" style="color:#7a6255;">Aucun message pour l'instant. Dis bonjour ! 👋</p>`;
+          return;
         }
-      }).join("");
 
-      // Scroll vers le bas
-      const main = document.getElementById("messages-container");
-      main.scrollTop = main.scrollHeight;
+        const wasAtBottom = isAtBottom();
+
+        container.innerHTML = messages.map(msg => {
+          const isMe = msg.user.id === currentUser?.id;
+          if (isMe) {
+            return `
+              <div class="flex justify-end">
+                <div class="max-w-xs px-4 py-2.5 msg-me">
+                  ${msg.imageUrl ? `<img src="${API_URL}${msg.imageUrl}" class="rounded-xl max-w-full mb-1" style="max-height:200px; object-fit:cover;" />` : ''}
+                  ${msg.message ? `<p class="text-sm" style="color:#2D241F;">${msg.message}</p>` : ''}
+                  <p class="text-xs mt-1 text-right" style="color:#7a6255;">${formatTime(msg.sentAt)}</p>
+                </div>
+              </div>`;
+          } else {
+            return `
+              <div class="flex items-end gap-2">
+                <div class="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden" style="background:#e8cebb;">
+                  ${msg.user.avatar ? `<img src="${API_URL}${msg.user.avatar}" class="w-full h-full object-cover" />` : ''}
+                </div>
+                <div class="max-w-xs">
+                  <p class="text-xs mb-1 font-semibold" style="color:#7a6255;">@${msg.user.username}</p>
+                  <div class="px-4 py-2.5 msg-other">
+                    ${msg.imageUrl ? `<img src="${API_URL}${msg.imageUrl}" class="rounded-xl max-w-full mb-1" style="max-height:200px; object-fit:cover;" />` : ''}
+                    ${msg.message ? `<p class="text-sm" style="color:#2D241F;">${msg.message}</p>` : ''}
+                    <p class="text-xs mt-1" style="color:#7a6255;">${formatTime(msg.sentAt)}</p>
+                  </div>
+                </div>
+              </div>`;
+          }
+        }).join("");
+
+        if (wasAtBottom) scrollToBottom();
+      } catch (_) {}
     }
 
-    function formatTime(time) {
-      return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(time));
+    function isAtBottom() {
+      const el = document.getElementById("messages-container");
+      return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     }
 
-    // Envoi d'un message
+    function scrollToBottom() {
+      const el = document.getElementById("messages-container");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("msg-input");
+      const message = input.value.trim();
+      if (!message && !pendingImageFile) return;
+
+      input.value = "";
+
+      try {
+        // Upload image si présente
+        if (pendingImageFile) {
+          const formData = new FormData();
+          formData.append("file", pendingImageFile);
+          await fetch(`${API_URL}/chat/${groupId}/image`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${getToken()}` },
+            body: formData,
+          });
+          pendingImageFile = null;
+          document.getElementById("img-input").value = "";
+          document.getElementById("img-preview-container").classList.add("hidden");
+          document.getElementById("img-preview").src = "";
+        }
+
+        // Envoyer le message texte si présent
+        if (message) {
+          await apiRequest(`/chat/${groupId}`, {
+            method: "POST",
+            body: JSON.stringify({ message }),
+          });
+        }
+
+        await loadMessages();
+        scrollToBottom();
+      } catch (e) {
+        input.value = message;
+      }
+    }
+
+    let pendingImageFile = null;
+
     document.getElementById("btn-send").addEventListener("click", sendMessage);
     document.getElementById("msg-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendMessage();
     });
 
-    function sendMessage() {
-      const input = document.getElementById("msg-input");
-      const text = input.value.trim();
-      if (!text || !currentUser) return;
+    // Sélection image → aperçu
+    document.getElementById("img-input").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pendingImageFile = file;
+      const preview = document.getElementById("img-preview");
+      preview.src = URL.createObjectURL(file);
+      document.getElementById("img-preview-container").classList.remove("hidden");
+    });
 
-      messages.push({
-        senderId: currentUser.id,
-        senderName: currentUser.username,
-        senderAvatar: currentUser.avatar,
-        text,
-        time: new Date().toISOString(),
-      });
-
-      input.value = "";
-      renderMessages();
-    }
+    // Annuler l'image
+    document.getElementById("btn-cancel-img").addEventListener("click", () => {
+      pendingImageFile = null;
+      document.getElementById("img-input").value = "";
+      document.getElementById("img-preview-container").classList.add("hidden");
+      document.getElementById("img-preview").src = "";
+    });
 
     async function init() {
       await loadCurrentUser();
       await loadGroup();
-      renderMessages();
+      await loadMessages();
+      scrollToBottom();
 
-      document.getElementById("btn-group-name").addEventListener("click", () => {
-        window.location.href = `groupe-settings.html#${groupId}`;
-      });
+      // Polling toutes les 3 secondes
+      pollingInterval = setInterval(loadMessages, 3000);
     }
+
+    // Arrête le polling quand on quitte la page
+    window.addEventListener("beforeunload", () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    });
 
     init();
   </script>
