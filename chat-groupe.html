@@ -11,91 +11,125 @@
   <style>
     .msg-other { background: #F1D9C8; border-radius: 4px 16px 16px 16px; }
     .msg-me { background: #e8e0d8; border-radius: 16px 4px 16px 16px; }
-    body { overflow: hidden; }
     #messages-container { overflow-y: auto; scroll-behavior: smooth; }
   </style>
 </head>
-<body class="flex flex-col" style="background:#faf6f2; height: 100dvh;">
+<body class="flex flex-col overflow-hidden" style="background:#faf6f2; height: 100dvh;">
 
-  <!-- HEADER -->
-  <header class="w-full flex items-center justify-between px-4 flex-shrink-0" style="background:#F1D9C8; height: 60px;">
-    <div class="flex items-center gap-2">
-      <a href="groupe.html">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
+  <!-- HEADER PRINCIPAL -->
+  <header class="w-full relative flex items-center justify-between px-5" style="background:#F1D9C8; height: 60px;">
+    <div class="flex items-center gap-4 z-10">
+      <a href="profil.html">
+        <img src="img/assets/user.png" alt="profil" class="w-6 h-6 object-contain" />
       </a>
-      <div id="btn-group-name" class="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer" style="background:#2D241F;">
-        <span id="group-name" class="font-bold text-sm" style="color:#F1D9C8;">Chargement...</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      </div>
+      <a href="#">
+        <img src="img/assets/loop.png" alt="recherche" class="w-6 h-6 object-contain" />
+      </a>
     </div>
-    <div class="flex items-center gap-4">
-      <a href="#">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/>
-        </svg>
-      </a>
-      <a href="#">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#255B54" stroke-width="2.5">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
+
+    <div class="absolute left-1/2 -translate-x-1/2">
+      <span style="font-family: 'Rammetto One', cursive; color: #255B54; font-size: 20px;">GROUPES</span>
+    </div>
+
+    <div class="flex items-center z-10">
+      <a href="notifications.html">
+        <img src="img/assets/bell.png" alt="notifications" class="w-6 h-6 object-contain" />
       </a>
     </div>
   </header>
 
+  <!-- BARRE DU GROUPE -->
+  <div class="w-full flex items-center justify-between px-4 flex-shrink-0" style="background:#2D241F; height: 60px;">
+    <div id="btn-group-name" class="flex items-center gap-2 px-3 py-1.5 cursor-pointer" style="background:#F1D9C8; border-radius: 20px;">
+      <span id="group-name" class="font-bold text-sm" style="color:#2D241F;">Chargement...</span>
+      <div class="flex items-center justify-center rounded-full overflow-hidden flex-shrink-0" style="background:white; width:26px; height:26px;">
+        <img src="img/assets/groupe/arrow.png" style="width:14px; height:14px; object-fit:contain; display:block;" alt="" />
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; width:32px; height:32px;">
+        <img src="img/assets/groupe/tel.png" style="width:18px; height:18px; object-fit:contain; display:block;" alt="Appel" />
+      </div>
+      <div class="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; width:32px; height:32px;">
+        <img src="img/assets/groupe/graph.png" style="width:30px; height:30px; object-fit:contain; display:block;" alt="Stats" />
+      </div>
+    </div>
+  </div>
+
   <!-- MESSAGES -->
-  <main id="messages-container" class="flex-1 px-4 py-4" style="padding-bottom: 80px;">
+  <main id="messages-container" class="flex-1 px-4 py-4">
     <div id="messages-list" class="flex flex-col gap-4">
       <p class="text-xs text-center" style="color:#7a6255;">Chargement des messages...</p>
     </div>
   </main>
 
   <!-- BARRE D'ENVOI -->
-  <div class="flex-shrink-0 px-3 py-3" style="background:#2D241F;">
-    <div class="flex items-center gap-2">
-      <button class="flex-shrink-0" onclick="document.getElementById('img-input').click()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
+  <div class="flex-shrink-0 px-4 py-3" style="background:#faf6f2;">
+    <div class="flex items-center gap-3 px-4" style="background:#A50329; border-radius: 50px; height: 52px;">
+
+      <button class="flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; border-radius:50%; width:36px; height:36px;" onclick="document.getElementById('img-input').click()">
+        <img src="img/assets/groupe/photo.png" style="width:20px; height:20px; object-fit:contain; display:block;" alt="Photo" />
       </button>
 
-      <div class="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl" style="background:#3d322c; min-height:42px;">
-        <div id="img-preview-container" class="hidden relative flex-shrink-0">
-          <img id="img-preview" src="" class="h-10 w-10 rounded-lg object-cover" />
-          <button id="btn-cancel-img" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-white" style="background:#A50329; font-size:8px;">✕</button>
-        </div>
-        <input id="msg-input" type="text" placeholder="Votre message..."
-          class="flex-1 text-sm outline-none bg-transparent"
-          style="color:#F1D9C8; border:none;" />
+      <div id="img-preview-container" class="hidden relative flex-shrink-0">
+        <img id="img-preview" src="" class="h-8 w-8 rounded-lg object-cover" />
+        <button id="btn-cancel-img" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-white" style="background:#7a0020; font-size:8px;">✕</button>
       </div>
 
+      <input id="msg-input" type="text" placeholder="Votre message..."
+        class="flex-1 text-sm outline-none bg-transparent"
+        style="color:white; border:none;"
+        placeholder-style="color:rgba(255,255,255,0.6);" />
+
       <input type="file" id="img-input" accept="image/*" class="hidden" />
+
       <button class="flex-shrink-0">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
+        <img src="img/assets/groupe/micro.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Micro" />
       </button>
       <button class="flex-shrink-0" onclick="document.getElementById('img-input').click()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
+        <img src="img/assets/groupe/img.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Image" />
       </button>
-      <button id="btn-send" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style="background:#A50329;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
+      <button id="btn-send" class="flex-shrink-0">
+        <img src="img/assets/groupe/dote.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Envoyer" />
       </button>
+
     </div>
   </div>
+
+  <!-- FOOTER -->
+  <footer class="flex-shrink-0 flex items-end justify-around px-4 pb-4 pt-2" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
+      </div>
+    </a>
+
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+
+  </footer>
 
   <script type="module">
     import { getToken, apiRequest } from "./js/api.js";
@@ -191,7 +225,6 @@
       input.value = "";
 
       try {
-        // Upload image si présente
         if (pendingImageFile) {
           const formData = new FormData();
           formData.append("file", pendingImageFile);
@@ -206,7 +239,6 @@
           document.getElementById("img-preview").src = "";
         }
 
-        // Envoyer le message texte si présent
         if (message) {
           await apiRequest(`/chat/${groupId}`, {
             method: "POST",
@@ -228,7 +260,6 @@
       if (e.key === "Enter") sendMessage();
     });
 
-    // Sélection image → aperçu
     document.getElementById("img-input").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -238,7 +269,6 @@
       document.getElementById("img-preview-container").classList.remove("hidden");
     });
 
-    // Annuler l'image
     document.getElementById("btn-cancel-img").addEventListener("click", () => {
       pendingImageFile = null;
       document.getElementById("img-input").value = "";
@@ -252,11 +282,9 @@
       await loadMessages();
       scrollToBottom();
 
-      // Polling toutes les 3 secondes
       pollingInterval = setInterval(loadMessages, 3000);
     }
 
-    // Arrête le polling quand on quitte la page
     window.addEventListener("beforeunload", () => {
       if (pollingInterval) clearInterval(pollingInterval);
     });

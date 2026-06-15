@@ -99,6 +99,14 @@
     </button>
   </div>
 
+  <!-- Section membres (sous la barre verte, cachée par défaut) -->
+  <div id="membres-section" class="hidden mx-4 rounded-2xl overflow-hidden mb-6" style="background:#fff;">
+    <div class="px-4 py-3 border-b border-gray-100">
+      <p class="font-bold text-sm" style="color:#2D241F;">Membres du groupe</p>
+    </div>
+    <div id="membres-list" class="px-4 py-2"></div>
+  </div>
+
   <!-- Liste des réglages -->
   <div class="mx-4 rounded-2xl overflow-hidden mb-6" style="background:#fff;">
     <div class="flex items-center justify-between px-4 py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50">
@@ -241,9 +249,15 @@
     const sheet = document.getElementById("add-sheet");
     const overlay = document.getElementById("overlay");
     let allFriends = [];
+    let groupMembers = [];
     let sheetOpen = false;
+    let membresVisible = false;
 
-    // Toggle bottom sheet
+    let currentUser = null;
+
+    async function loadCurrentUser() {
+      currentUser = await apiRequest("/users/me");
+    }
     function toggleSheet() {
       sheetOpen = !sheetOpen;
       if (sheetOpen) {
@@ -260,7 +274,43 @@
     document.getElementById("btn-close-sheet").addEventListener("click", toggleSheet);
     overlay.addEventListener("click", toggleSheet);
 
-    // Charge les amis
+    // Toggle membres
+    document.getElementById("btn-membres").addEventListener("click", async () => {
+      membresVisible = !membresVisible;
+      const section = document.getElementById("membres-section");
+      if (membresVisible) {
+        section.classList.remove("hidden");
+        renderMembers();
+      } else {
+        section.classList.add("hidden");
+      }
+    });
+
+    function renderMembers() {
+      const container = document.getElementById("membres-list");
+      if (!groupMembers.length) {
+        container.innerHTML = `<p class="text-sm py-3" style="color:#7a6255;">Aucun membre.</p>`;
+        return;
+      }
+      container.innerHTML = groupMembers.map(m => `
+        <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0" style="background:#e8cebb;">
+              ${m.avatar ? `<img src="http://localhost:3000${m.avatar}" class="w-full h-full object-cover" />` : ''}
+            </div>
+            <p class="font-semibold text-sm" style="color:#2D241F;">@${m.username}</p>
+          </div>
+          ${m.username !== currentUser?.username ? `
+            <button onclick="removeMember('${m.username}', this)"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+              style="border-color:#A50329; color:#A50329;">
+              Retirer
+            </button>` : `<span class="text-xs" style="color:#7a6255;">Moi</span>`}
+        </div>
+      `).join("");
+    }
+
+    // Charge les amis en désactivant ceux déjà membres
     async function loadFriends() {
       const container = document.getElementById("add-friends-list");
       try {
@@ -278,23 +328,26 @@
         container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun ami trouvé.</p>`;
         return;
       }
-      container.innerHTML = friends.map(f => `
-        <div class="flex items-center justify-between py-3 border-b border-gray-100">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0" style="background:#e8cebb;">
-              ${f.avatar ? `<img src="http://localhost:3000${f.avatar}" class="w-full h-full object-cover" />` : ''}
+      container.innerHTML = friends.map(f => {
+        const isMember = groupMembers.some(m => m.id === f.id);
+        return `
+          <div class="flex items-center justify-between py-3 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0" style="background:#e8cebb;">
+                ${f.avatar ? `<img src="http://localhost:3000${f.avatar}" class="w-full h-full object-cover" />` : ''}
+              </div>
+              <div>
+                <p class="font-semibold text-sm" style="color:#2D241F;">@${f.username}</p>
+              </div>
             </div>
-            <div>
-              <p class="font-semibold text-sm" style="color:#2D241F;">@${f.username}</p>
-            </div>
-          </div>
-          <button onclick="addMember('${f.username}', this)"
-            class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-            style="border-color:#255B54; color:#255B54;">
-            + Ajouter
-          </button>
-        </div>
-      `).join("");
+            <button onclick="${isMember ? '' : `addMember('${f.username}', this)`}"
+              ${isMember ? 'disabled' : ''}
+              class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+              style="${isMember ? 'border-color:#ccc; color:#ccc; opacity:0.5; cursor:not-allowed;' : 'border-color:#255B54; color:#255B54;'}">
+              ${isMember ? '✓ Membre' : '+ Ajouter'}
+            </button>
+          </div>`;
+      }).join("");
     }
 
     // Recherche dans le sheet
@@ -304,6 +357,21 @@
       renderFriends(filtered);
     });
 
+    // Retirer un membre
+    window.removeMember = async (username, btn) => {
+      if (!confirm(`Retirer @${username} du groupe ?`)) return;
+      try {
+        await apiRequest("/groups/removeMember", {
+          method: "POST",
+          body: JSON.stringify({ groupId: Number(groupId), username }),
+        });
+        await loadGroup();
+        renderMembers();
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    };
+
     // Ajouter un membre
     window.addMember = async (username, btn) => {
       try {
@@ -311,9 +379,15 @@
           method: "POST",
           body: JSON.stringify({ id: Number(groupId), username }),
         });
-        btn.textContent = "✓ Ajouté";
+        btn.textContent = "✓ Membre";
         btn.disabled = true;
+        btn.style.borderColor = "#ccc";
+        btn.style.color = "#ccc";
         btn.style.opacity = "0.5";
+        btn.style.cursor = "not-allowed";
+        btn.onclick = null;
+        // Met à jour la liste des membres
+        await loadGroup();
       } catch (e) {
         btn.textContent = "Erreur";
       }
@@ -325,6 +399,8 @@
       document.getElementById("group-name-display").textContent = group.name;
       document.getElementById("group-initial").textContent = group.name.charAt(0).toUpperCase();
       document.getElementById("input-group-name").value = group.name;
+      groupMembers = group.users ?? [];
+      if (membresVisible) renderMembers();
     }
 
     // Toggle formulaire nom
@@ -363,6 +439,7 @@
       }
     });
 
+    loadCurrentUser();
     loadGroup();
   </script>
 
