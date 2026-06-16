@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Missions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen flex flex-col" style="background:#faf6f2;">
+
+  <!-- HEADER -->
+  <header class="w-full flex items-center justify-between px-4" style="background:#F1D9C8; height: 60px;">
+    <a href="javascript:history.back()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D241F" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <span id="group-name-header" style="font-family:'Rammetto One',cursive; color:#255B54; font-size:18px;">MISSIONS</span>
+    <div class="w-6"></div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-32">
+
+    <!-- Bouton créer -->
+    <button id="btn-create-mission"
+      class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide mb-8"
+      style="background:#255B54; color:#F1D9C8; font-family:'Rammetto One',cursive;">
+      CRÉER NOS PROPRES MISSIONS
+    </button>
+
+    <!-- Classement -->
+    <p class="text-xs font-semibold tracking-widest mb-4" style="color:#7a6255;">CLASSEMENT</p>
+    <div id="ranking-list" class="mb-8"></div>
+
+    <!-- Missions -->
+    <p class="text-xs font-semibold tracking-widest mb-4" style="color:#7a6255;">MISSIONS DU GROUPE</p>
+    <div id="missions-list">
+      <p class="text-sm" style="color:#7a6255;">Chargement...</p>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
+    <a href="groupe.html" class="flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
+        <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
+      </div>
+    </a>
+    <a href="blog.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="index.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="custom.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+    <a href="profil.html" class="flex flex-col items-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
+        <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
+      </div>
+    </a>
+  </footer>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+    if (!getToken()) window.location.href = "login.html";
+
+    const groupId = window.location.hash.replace("#", "");
+    if (!groupId) window.location.href = "groupe.html";
+
+    document.getElementById("btn-create-mission").addEventListener("click", () => {
+      window.location.href = `create-mission.html#${groupId}`;
+    });
+
+    function formatDate(value) {
+      if (!value) return null;
+      return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+    }
+
+    function isToday(frequency) {
+      if (!frequency) return true;
+      try {
+        const days = JSON.parse(frequency);
+        if (!days.length) return true;
+        const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
+        const todayCapital = today.charAt(0).toUpperCase() + today.slice(1);
+        return days.includes(todayCapital);
+      } catch { return true; }
+    }
+
+    async function load() {
+      try {
+        const [missions, group] = await Promise.all([
+          apiRequest(`/tasks/group/${groupId}`),
+          apiRequest(`/groups/group/${groupId}`),
+        ]);
+
+        document.getElementById("group-name-header").textContent = group.name.toUpperCase();
+
+        // --- CLASSEMENT ---
+        // Calcule les stats par utilisateur
+        const userStats = {};
+        for (const m of missions) {
+          for (const p of m.participants) {
+            if (!userStats[p.userId]) {
+              userStats[p.userId] = { username: p.username, validated: 0, failed: 0, points: 0 };
+            }
+            if (p.validated) userStats[p.userId].validated++;
+          }
+        }
+
+        const ranking = Object.values(userStats).sort((a, b) => b.validated - a.validated);
+        const rankingContainer = document.getElementById("ranking-list");
+
+        if (!ranking.length) {
+          rankingContainer.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun participant pour l'instant.</p>`;
+        } else {
+          rankingContainer.innerHTML = ranking.map((u, i) => `
+            <div class="flex items-center gap-3 py-3 px-4 rounded-2xl mb-3" style="background:#fff;">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+                style="background:${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#e8cebb'}; color:#2D241F;">
+                ${i + 1}
+              </div>
+              <div class="flex-1">
+                <p class="font-bold text-sm" style="color:#2D241F;">@${u.username}</p>
+                <div class="flex gap-3 mt-1">
+                  <span class="text-xs" style="color:#255B54;">✓ ${u.validated} réussis</span>
+                  <span class="text-xs" style="color:#A50329;">✕ ${u.failed} ratés</span>
+                  <span class="text-xs" style="color:#7a6255;">★ ${u.points} pts</span>
+                </div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a6255" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          `).join("");
+        }
+
+        // --- MISSIONS ---
+        const missionsContainer = document.getElementById("missions-list");
+        if (!missions.length) {
+          missionsContainer.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucune mission pour l'instant.</p>`;
+          return;
+        }
+
+        missionsContainer.innerHTML = missions.map(m => {
+          const days = m.frequency ? JSON.parse(m.frequency) : [];
+          return `
+            <div class="rounded-2xl p-4 mb-4" style="background:#fff; border:1px solid #e8e8e8;">
+              <div class="flex items-start justify-between mb-2">
+                <h3 class="font-bold text-sm" style="color:#2D241F;">${m.title}</h3>
+              </div>
+              ${m.description ? `<p class="text-xs mb-3" style="color:#7a6255;">${m.description}</p>` : ''}
+              <div class="flex flex-wrap gap-2 mb-2">
+                ${days.map(d => `<span class="px-2 py-1 rounded-full text-xs font-semibold" style="background:#F1D9C8; color:#2D241F;">${d}</span>`).join("")}
+              </div>
+              ${m.deadline ? `<p class="text-xs" style="color:#A50329;">📅 Avant le ${formatDate(m.deadline)}</p>` : ''}
+              ${m.reminderTime ? `<p class="text-xs mt-1" style="color:#255B54;">🔔 Rappel à ${m.reminderTime}</p>` : ''}
+              <div class="mt-3 pt-3 border-t border-gray-100">
+                <p class="text-xs font-semibold mb-2" style="color:#7a6255;">PARTICIPANTS</p>
+                <div class="flex flex-col gap-1">
+                  ${m.participants.map(p => `
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs" style="color:#2D241F;">@${p.username}</span>
+                      <span class="text-xs font-semibold" style="color:${p.validated ? '#255B54' : '#7a6255'};">
+                        ${p.validated ? '✓ Validé' : '○ En attente'}
+                      </span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </div>`;
+        }).join("");
+
+      } catch (e) {
+        document.getElementById("missions-list").innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+      }
+    }
+
+    load();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Créer une mission</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen flex flex-col" style="background:#fff;">
+
+  <!-- HEADER -->
+  <header class="w-full flex items-center justify-between px-4" style="background:#2D241F; height: 60px;">
+    <a href="javascript:history.back()">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#3d322c;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </a>
+    <span id="group-title" style="font-family:'Rammetto One',cursive; color:#fff; font-size:15px;">NOUVELLE MISSION</span>
+    <div class="w-8"></div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-32">
+
+    <!-- Bouton titre -->
+    <button class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide mb-8"
+      style="background:#255B54; color:#F1D9C8; font-family:'Rammetto One',cursive;">
+      CRÉER NOS PROPRES MISSIONS
+    </button>
+
+    <!-- Nom -->
+    <p class="font-bold text-sm mb-2" style="color:#2D241F;">Nom de la mission</p>
+    <input id="input-title" type="text" placeholder="Quelle mission voulez-vous accomplir ?"
+      class="w-full px-4 py-3.5 rounded-xl text-sm outline-none mb-2"
+      style="background:#f7f7f7; border:1px solid #e8e8e8; color:#2D241F;" />
+    <p class="text-xs mb-6" style="color:#7a6255;">Pas d'idée ? Scrolle un peu ✨</p>
+
+    <!-- Description -->
+    <p class="font-bold text-sm mb-2" style="color:#2D241F;">Description (optionnel)</p>
+    <textarea id="input-description" placeholder="Ajoute un objectif ou une précision pour le groupe."
+      class="w-full px-4 py-3.5 rounded-xl text-sm outline-none mb-6 resize-none h-24"
+      style="background:#f7f7f7; border:1px solid #e8e8e8; color:#2D241F;"></textarea>
+
+    <!-- Fréquence -->
+    <p class="font-bold text-sm mb-3" style="color:#2D241F;">Fréquence</p>
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button type="button" onclick="toggleFreq('tous')" id="freq-tous"
+        class="px-4 py-2 rounded-full text-xs font-semibold border-2 transition-colors"
+        style="border-color:#2D241F; color:#2D241F; background:transparent;">
+        Tous les jours
+      </button>
+      <div class="flex flex-wrap gap-2" id="days-container">
+        <!-- jours générés par JS -->
+      </div>
+    </div>
+
+    <!-- Date limite -->
+    <p class="font-bold text-sm mb-2" style="color:#2D241F;">Date limite (optionnel)</p>
+    <input id="input-deadline" type="date"
+      class="w-full px-4 py-3.5 rounded-xl text-sm outline-none mb-6"
+      style="background:#f7f7f7; border:1px solid #e8e8e8; color:#2D241F;" />
+
+    <!-- Rappel -->
+    <p class="font-bold text-sm mb-3" style="color:#2D241F;">Rappel (optionnel)</p>
+    <div class="flex gap-3 mb-3">
+      <button type="button" id="reminder-none"
+        onclick="setReminder('none')"
+        class="px-4 py-2 rounded-full text-xs font-semibold border-2 transition-colors"
+        style="border-color:#2D241F; background:#2D241F; color:#fff;">
+        Aucun rappel
+      </button>
+      <button type="button" id="reminder-yes"
+        onclick="setReminder('yes')"
+        class="px-4 py-2 rounded-full text-xs font-semibold border-2 transition-colors"
+        style="border-color:#2D241F; color:#2D241F; background:transparent;">
+        Rappel
+      </button>
+    </div>
+    <div id="reminder-time-container" class="hidden mb-6">
+      <p class="text-xs mb-2" style="color:#7a6255;">Choisir l'heure</p>
+      <input id="input-reminder" type="time" value="09:00"
+        class="px-4 py-3.5 rounded-xl text-sm outline-none"
+        style="background:#f7f7f7; border:1px solid #e8e8e8; color:#2D241F;" />
+    </div>
+
+    <p id="error-msg" class="text-xs text-center mb-4" style="color:#A50329; min-height:16px;"></p>
+
+  </main>
+
+  <!-- BOUTON CRÉER -->
+  <div class="fixed bottom-6 left-0 right-0 px-5 max-w-md mx-auto">
+    <button id="btn-create"
+      class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide"
+      style="background:#A50329; color:#fff; font-family:'Rammetto One',cursive;">
+      CRÉER LA MISSION
+    </button>
+  </div>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    if (!getToken()) window.location.href = "login.html";
+
+    const groupId = window.location.hash.replace("#", "");
+    if (!groupId) window.location.href = "groupe.html";
+
+    const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    let selectedDays = [];
+    let allDays = false;
+    let reminderEnabled = false;
+
+    // Génère les boutons jours
+    const daysContainer = document.getElementById("days-container");
+    daysContainer.innerHTML = DAYS.map(d => `
+      <button type="button" onclick="toggleDay('${d}')" id="day-${d}"
+        class="px-3 py-2 rounded-full text-xs font-semibold border-2 transition-colors"
+        style="border-color:#e8e8e8; color:#2D241F; background:#f7f7f7;">
+        ${d}
+      </button>
+    `).join("");
+
+    window.toggleDay = (day) => {
+      allDays = false;
+      document.getElementById("freq-tous").style.background = "transparent";
+      document.getElementById("freq-tous").style.color = "#2D241F";
+
+      if (selectedDays.includes(day)) {
+        selectedDays = selectedDays.filter(d => d !== day);
+        document.getElementById(`day-${day}`).style.background = "#f7f7f7";
+        document.getElementById(`day-${day}`).style.borderColor = "#e8e8e8";
+        document.getElementById(`day-${day}`).style.color = "#2D241F";
+      } else {
+        selectedDays.push(day);
+        document.getElementById(`day-${day}`).style.background = "#2D241F";
+        document.getElementById(`day-${day}`).style.borderColor = "#2D241F";
+        document.getElementById(`day-${day}`).style.color = "#fff";
+      }
+    };
+
+    window.toggleFreq = (type) => {
+      allDays = !allDays;
+      selectedDays = [];
+      DAYS.forEach(d => {
+        document.getElementById(`day-${d}`).style.background = "#f7f7f7";
+        document.getElementById(`day-${d}`).style.borderColor = "#e8e8e8";
+        document.getElementById(`day-${d}`).style.color = "#2D241F";
+      });
+      const btn = document.getElementById("freq-tous");
+      btn.style.background = allDays ? "#2D241F" : "transparent";
+      btn.style.color = allDays ? "#fff" : "#2D241F";
+    };
+
+    window.setReminder = (type) => {
+      reminderEnabled = type === 'yes';
+      document.getElementById("reminder-none").style.background = type === 'none' ? "#2D241F" : "transparent";
+      document.getElementById("reminder-none").style.color = type === 'none' ? "#fff" : "#2D241F";
+      document.getElementById("reminder-yes").style.background = type === 'yes' ? "#2D241F" : "transparent";
+      document.getElementById("reminder-yes").style.color = type === 'yes' ? "#fff" : "#2D241F";
+      document.getElementById("reminder-time-container").classList.toggle("hidden", !reminderEnabled);
+    };
+
+    document.getElementById("btn-create").addEventListener("click", async () => {
+      const title = document.getElementById("input-title").value.trim();
+      const description = document.getElementById("input-description").value.trim();
+      const deadline = document.getElementById("input-deadline").value;
+      const reminderTime = reminderEnabled ? document.getElementById("input-reminder").value : null;
+      const errorMsg = document.getElementById("error-msg");
+      errorMsg.textContent = "";
+
+      if (!title) {
+        errorMsg.textContent = "Le nom de la mission est requis.";
+        return;
+      }
+
+      const frequency = allDays ? JSON.stringify(DAYS) : selectedDays.length ? JSON.stringify(selectedDays) : null;
+
+      const btn = document.getElementById("btn-create");
+      btn.textContent = "Création...";
+      btn.disabled = true;
+
+      try {
+        await apiRequest("/tasks/create", {
+          method: "POST",
+          body: JSON.stringify({
+            title,
+            description: description || " ",
+            frequency,
+            deadline: deadline || null,
+            reminderTime,
+            groupId: Number(groupId),
+          }),
+        });
+        window.location.href = `missions-groupe.html#${groupId}`;
+      } catch (e) {
+        errorMsg.textContent = e.message || "Une erreur est survenue.";
+        btn.textContent = "CRÉER LA MISSION";
+        btn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>

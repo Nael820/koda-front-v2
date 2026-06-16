@@ -12,6 +12,13 @@
     .msg-other { background: #F1D9C8; border-radius: 4px 16px 16px 16px; }
     .msg-me { background: #e8e0d8; border-radius: 16px 4px 16px 16px; }
     #messages-container { overflow-y: auto; scroll-behavior: smooth; }
+    .mission-sheet { transform: translateY(100%); transition: transform 0.3s ease; }
+    .mission-sheet.open { transform: translateY(0); }
+    .popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:60; }
+    .popup-overlay.open { display:flex; align-items:center; justify-content:center; }
+    .vote-btn { transition: all 0.15s ease; }
+    .vote-btn.active-yes { background:#255B54 !important; color:#fff !important; transform: scale(0.95); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+    .vote-btn.active-no { background:#A50329 !important; color:#fff !important; transform: scale(0.95); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
   </style>
 </head>
 <body class="flex flex-col overflow-hidden" style="background:#faf6f2; height: 100dvh;">
@@ -26,11 +33,9 @@
         <img src="img/assets/loop.png" alt="recherche" class="w-6 h-6 object-contain" />
       </a>
     </div>
-
     <div class="absolute left-1/2 -translate-x-1/2">
       <span style="font-family: 'Rammetto One', cursive; color: #255B54; font-size: 20px;">GROUPES</span>
     </div>
-
     <div class="flex items-center z-10">
       <a href="notifications.html">
         <img src="img/assets/bell.png" alt="notifications" class="w-6 h-6 object-contain" />
@@ -50,7 +55,7 @@
       <div class="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; width:32px; height:32px;">
         <img src="img/assets/groupe/tel.png" style="width:18px; height:18px; object-fit:contain; display:block;" alt="Appel" />
       </div>
-      <div class="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; width:32px; height:32px;">
+      <div id="btn-missions" class="rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden cursor-pointer" style="background:white; width:32px; height:32px;">
         <img src="img/assets/groupe/graph.png" style="width:30px; height:30px; object-fit:contain; display:block;" alt="Stats" />
       </div>
     </div>
@@ -66,76 +71,95 @@
   <!-- BARRE D'ENVOI -->
   <div class="flex-shrink-0 px-4 py-3" style="background:#faf6f2;">
     <div class="flex items-center gap-3 px-4" style="background:#A50329; border-radius: 50px; height: 52px;">
-
       <button class="flex-shrink-0 flex items-center justify-center overflow-hidden" style="background:white; border-radius:50%; width:36px; height:36px;" onclick="document.getElementById('img-input').click()">
         <img src="img/assets/groupe/photo.png" style="width:20px; height:20px; object-fit:contain; display:block;" alt="Photo" />
       </button>
-
       <div id="img-preview-container" class="hidden relative flex-shrink-0">
         <img id="img-preview" src="" class="h-8 w-8 rounded-lg object-cover" />
         <button id="btn-cancel-img" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-white" style="background:#7a0020; font-size:8px;">✕</button>
       </div>
-
       <input id="msg-input" type="text" placeholder="Votre message..."
         class="flex-1 text-sm outline-none bg-transparent"
-        style="color:white; border:none;"
-        placeholder-style="color:rgba(255,255,255,0.6);" />
-
+        style="color:white; border:none;" />
       <input type="file" id="img-input" accept="image/*" class="hidden" />
-
       <button class="flex-shrink-0">
         <img src="img/assets/groupe/micro.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Micro" />
       </button>
       <button class="flex-shrink-0" onclick="document.getElementById('img-input').click()">
         <img src="img/assets/groupe/img.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Image" />
       </button>
-      <button id="btn-send" class="flex-shrink-0">
-        <img src="img/assets/groupe/dote.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Envoyer" />
+      <button id="btn-validate-mission" class="flex-shrink-0">
+        <img src="img/assets/groupe/dote.png" style="width:22px; height:22px; object-fit:contain; display:block;" alt="Valider mission" />
       </button>
-
     </div>
   </div>
 
   <!-- FOOTER -->
   <footer class="flex-shrink-0 flex items-end justify-around px-4 pb-4 pt-2" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
-
     <a href="groupe.html" class="flex flex-col items-center">
       <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
         <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
       </div>
     </a>
-
     <a href="blog.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="index.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="custom.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="profil.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
   </footer>
+
+  <!-- OVERLAY -->
+  <div id="mission-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" onclick="closeMissionSheet()"></div>
+
+  <!-- BOTTOM SHEET MISSIONS -->
+  <div id="mission-sheet" class="mission-sheet fixed bottom-0 left-0 right-0 max-w-md mx-auto rounded-t-3xl z-50" style="background:#fff; max-height:70vh; overflow-y:auto;">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0" style="background:#fff;">
+      <p class="font-bold text-sm" style="color:#2D241F;">Valider une mission</p>
+      <button onclick="closeMissionSheet()" style="color:#7a6255; font-size:18px;">✕</button>
+    </div>
+    <div id="mission-sheet-list" class="px-5 py-4"></div>
+  </div>
+
+  <!-- INPUT PHOTO VALIDATION -->
+  <input type="file" id="validation-photo-input" accept="image/*" class="hidden" />
+
+  <!-- POPUP VOTES -->
+  <div id="votes-popup" class="popup-overlay">
+    <div class="mx-4 rounded-2xl p-5 w-full max-w-sm" style="background:#fff;">
+      <div class="flex items-center justify-between mb-4">
+        <p class="font-bold text-sm" style="color:#2D241F;">Détails des votes</p>
+        <button onclick="closeVotesPopup()" style="color:#7a6255; font-size:18px;">✕</button>
+      </div>
+      <div class="mb-4">
+        <p class="text-xs font-semibold mb-2" style="color:#255B54;">✓ ONT VOTÉ OUI</p>
+        <div id="popup-yes-list" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold mb-2" style="color:#A50329;">✕ ONT VOTÉ NON</p>
+        <div id="popup-no-list" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { getToken, apiRequest } from "./js/api.js";
 
     const API_URL = "http://localhost:3000";
-
     if (!getToken()) window.location.href = "login.html";
 
     const groupId = window.location.hash.replace("#", "");
@@ -143,6 +167,9 @@
 
     let currentUser = null;
     let pollingInterval = null;
+    let pendingImageFile = null;
+    let groupMissions = [];
+    let pendingValidationTaskId = null;
 
     async function loadCurrentUser() {
       currentUser = await apiRequest("/users/me");
@@ -158,8 +185,81 @@
       } catch (_) {}
     }
 
+    async function loadGroupMissions() {
+      try {
+        groupMissions = await apiRequest(`/tasks/group/${groupId}`);
+      } catch (_) {}
+    }
+
     function formatTime(value) {
-      return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+      const date = new Date(value);
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const isYesterday = date.toDateString() === yesterday.toDateString();
+      const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(date);
+      if (isToday) return `Aujourd'hui ${time}`;
+      if (isYesterday) return `Hier ${time}`;
+      return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
+    }
+
+    function isValidableToday(frequency) {
+      if (!frequency) return true;
+      try {
+        const days = JSON.parse(frequency);
+        if (!days.length) return true;
+        const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
+        const todayCapital = today.charAt(0).toUpperCase() + today.slice(1);
+        return days.includes(todayCapital);
+      } catch { return true; }
+    }
+
+    function renderValidationBlock(validation, isMe, msgIndex, sentAt) {
+      const taskId = validation.task?.id;
+      const requesterId = validation.requester?.id;
+      if (!taskId || !requesterId) return '';
+
+      const myVote = validation.myVote ?? null;
+      const isRequester = currentUser?.id === requesterId;
+
+      // Trouve le nom de la mission
+      const mission = groupMissions.find(m => m.id === taskId);
+      const missionName = mission?.title ?? 'Mission';
+
+      // ID unique basé sur l'id du message (vraiment unique)
+      const dateStr = new Date(sentAt || Date.now()).toISOString().split('T')[0];
+      const uid = `${taskId}-${requesterId}-${dateStr}`;
+
+      const voteButtons = isRequester
+        ? `<p class="text-xs mt-1" style="color:#7a6255;">En attente des votes...</p>`
+        : `
+          <div class="flex gap-2 mt-2">
+            <button onclick="showVotesPopup(${taskId}, ${requesterId})"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold border"
+              style="border-color:#7a6255; color:#7a6255; background:transparent;">
+              Détails
+            </button>
+            <button id="btn-yes-${uid}"
+              onclick="castVote(${taskId}, ${requesterId}, 'yes', '${uid}')"
+              class="vote-btn px-4 py-1.5 rounded-xl text-xs font-bold border-2 ${myVote === 'yes' ? 'active-yes' : ''}"
+              style="border-color:#255B54; color:${myVote === 'yes' ? '#fff' : '#255B54'}; background:${myVote === 'yes' ? '#255B54' : 'transparent'};">
+              OUI
+            </button>
+            <button id="btn-no-${uid}"
+              onclick="castVote(${taskId}, ${requesterId}, 'no', '${uid}')"
+              class="vote-btn px-4 py-1.5 rounded-xl text-xs font-bold border-2 ${myVote === 'no' ? 'active-no' : ''}"
+              style="border-color:#A50329; color:${myVote === 'no' ? '#fff' : '#A50329'}; background:${myVote === 'no' ? '#A50329' : 'transparent'};">
+              NON
+            </button>
+          </div>`;
+
+      return `
+        <div class="mt-2 pt-2 border-t border-gray-200">
+          <p class="text-xs font-semibold mb-1" style="color:#255B54;">📋 ${missionName}</p>
+          <p class="font-bold text-xs mb-1" style="color:#2D241F; font-family:'Rammetto One',cursive;">VALIDER LA MISSION ?</p>
+          ${voteButtons}
+        </div>`;
     }
 
     async function loadMessages() {
@@ -174,14 +274,39 @@
 
         const wasAtBottom = isAtBottom();
 
-        container.innerHTML = messages.map(msg => {
+        // Charge les validations en attente avec les votes de l'utilisateur
+        let pendingValidations = [];
+        try {
+          const raw = await apiRequest(`/task-validation/group/${groupId}/pending`);
+          // Pour chaque validation, charge les votes avec myVote
+          pendingValidations = await Promise.all(raw.map(async v => {
+            try {
+              const votes = await apiRequest(`/task-validation/${v.task.id}/votes/${v.requester.id}`);
+              return { ...v, myVote: votes.myVote };
+            } catch { return v; }
+          }));
+        } catch (_) {}
+
+        const shownValidationKeys = new Set();
+
+        container.innerHTML = messages.map((msg, msgIndex) => {
           const isMe = msg.user.id === currentUser?.id;
+
+          // Clé unique par message (id du message)
+          const validationKey = msg.taskId ? `${msg.id}-${msg.taskId}-${msg.user.id}` : null;
+          const validation = (msg.taskId && validationKey && !shownValidationKeys.has(validationKey))
+            ? pendingValidations.find(v => v.task?.id === msg.taskId && v.requester?.id === msg.user.id)
+            : null;
+
+          if (validation) shownValidationKeys.add(validationKey);
+
           if (isMe) {
             return `
               <div class="flex justify-end">
                 <div class="max-w-xs px-4 py-2.5 msg-me">
                   ${msg.imageUrl ? `<img src="${API_URL}${msg.imageUrl}" class="rounded-xl max-w-full mb-1" style="max-height:200px; object-fit:cover;" />` : ''}
                   ${msg.message ? `<p class="text-sm" style="color:#2D241F;">${msg.message}</p>` : ''}
+                  ${validation ? renderValidationBlock(validation, true, msgIndex, msg.sentAt) : ''}
                   <p class="text-xs mt-1 text-right" style="color:#7a6255;">${formatTime(msg.sentAt)}</p>
                 </div>
               </div>`;
@@ -196,6 +321,7 @@
                   <div class="px-4 py-2.5 msg-other">
                     ${msg.imageUrl ? `<img src="${API_URL}${msg.imageUrl}" class="rounded-xl max-w-full mb-1" style="max-height:200px; object-fit:cover;" />` : ''}
                     ${msg.message ? `<p class="text-sm" style="color:#2D241F;">${msg.message}</p>` : ''}
+                    ${validation ? renderValidationBlock(validation, false, msgIndex, msg.sentAt) : ''}
                     <p class="text-xs mt-1" style="color:#7a6255;">${formatTime(msg.sentAt)}</p>
                   </div>
                 </div>
@@ -206,6 +332,141 @@
         if (wasAtBottom) scrollToBottom();
       } catch (_) {}
     }
+
+    // Voter OUI ou NON avec toggle
+    window.castVote = async (taskId, requesterId, vote, uid) => {
+      if (requesterId === currentUser?.id) return;
+
+      const btnYes = document.getElementById(`btn-yes-${uid}`);
+      const btnNo = document.getElementById(`btn-no-${uid}`);
+      if (!btnYes || !btnNo) return;
+
+      try {
+        await apiRequest(`/task-validation/${taskId}/vote/${requesterId}`, {
+          method: "POST",
+          body: JSON.stringify({ vote }),
+        });
+
+        btnYes.classList.remove('active-yes');
+        btnNo.classList.remove('active-no');
+        btnYes.style.background = 'transparent';
+        btnYes.style.color = '#255B54';
+        btnNo.style.background = 'transparent';
+        btnNo.style.color = '#A50329';
+
+        if (vote === 'yes') {
+          btnYes.classList.add('active-yes');
+          btnYes.style.background = '#255B54';
+          btnYes.style.color = '#fff';
+        } else {
+          btnNo.classList.add('active-no');
+          btnNo.style.background = '#A50329';
+          btnNo.style.color = '#fff';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    // Popup votes
+    window.showVotesPopup = async (taskId, requesterId) => {
+      try {
+        const votes = await apiRequest(`/task-validation/${taskId}/votes/${requesterId}`);
+        document.getElementById("popup-yes-list").innerHTML = votes.yes.length
+          ? votes.yes.map(u => `<span class="px-2 py-1 rounded-full text-xs" style="background:#e8f5e9; color:#255B54;">@${u.username}</span>`).join("")
+          : `<p class="text-xs" style="color:#7a6255;">Aucun vote pour l'instant</p>`;
+        document.getElementById("popup-no-list").innerHTML = votes.no.length
+          ? votes.no.map(u => `<span class="px-2 py-1 rounded-full text-xs" style="background:#fde8e8; color:#A50329;">@${u.username}</span>`).join("")
+          : `<p class="text-xs" style="color:#7a6255;">Aucun vote pour l'instant</p>`;
+        document.getElementById("votes-popup").classList.add("open");
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    };
+
+    window.closeVotesPopup = () => {
+      document.getElementById("votes-popup").classList.remove("open");
+    };
+
+    // Bottom sheet missions
+    window.openMissionSheet = async () => {
+      await loadGroupMissions();
+      const list = document.getElementById("mission-sheet-list");
+
+      // Déduplique par id
+      const seen = new Set();
+      const validable = groupMissions.filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return isValidableToday(m.frequency);
+      });
+
+      if (!validable.length) {
+        list.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucune mission à valider aujourd'hui.</p>`;
+      } else {
+        list.innerHTML = validable.map(m => `
+          <div class="flex items-center justify-between py-3 border-b border-gray-100">
+            <div>
+              <p class="font-bold text-sm" style="color:#2D241F;">${m.title}</p>
+              <p class="text-xs" style="color:#7a6255;">${m.description || ''}</p>
+            </div>
+            <button onclick="selectMissionForValidation(${m.id}, this)"
+              class="px-3 py-2 rounded-xl text-xs font-bold ml-3 flex-shrink-0"
+              style="background:#255B54; color:#fff;">
+              Choisir
+            </button>
+          </div>`).join("");
+      }
+      document.getElementById("mission-sheet").classList.add("open");
+      document.getElementById("mission-overlay").classList.remove("hidden");
+    };
+
+    window.closeMissionSheet = () => {
+      document.getElementById("mission-sheet").classList.remove("open");
+      document.getElementById("mission-overlay").classList.add("hidden");
+    };
+
+    window.selectMissionForValidation = (taskId, btn) => {
+      pendingValidationTaskId = taskId;
+      btn.textContent = "✓";
+      btn.style.background = "#B4C8C5";
+      document.getElementById("validation-photo-input").click();
+      closeMissionSheet();
+    };
+
+    document.getElementById("validation-photo-input").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file || !pendingValidationTaskId) return;
+      try {
+        // Supprime l'ancien message de validation si existant
+        try {
+          await apiRequest(`/chat/${groupId}/delete-validation-message`, {
+            method: "POST",
+            body: JSON.stringify({ taskId: pendingValidationTaskId }),
+          });
+        } catch (_) {}
+
+        // Remet les votes à zéro et crée une nouvelle validation
+        await apiRequest(`/task-validation/${pendingValidationTaskId}/submit`, { method: "POST" });
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("taskId", String(pendingValidationTaskId));
+        await fetch(`${API_URL}/chat/${groupId}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${getToken()}` },
+          body: formData,
+        });
+        pendingValidationTaskId = null;
+        e.target.value = "";
+        await loadMessages();
+        scrollToBottom();
+      } catch (err) {
+        alert("Erreur : " + err.message);
+      }
+    });
+
+    document.getElementById("btn-validate-mission").addEventListener("click", openMissionSheet);
 
     function isAtBottom() {
       const el = document.getElementById("messages-container");
@@ -221,9 +482,7 @@
       const input = document.getElementById("msg-input");
       const message = input.value.trim();
       if (!message && !pendingImageFile) return;
-
       input.value = "";
-
       try {
         if (pendingImageFile) {
           const formData = new FormData();
@@ -238,14 +497,12 @@
           document.getElementById("img-preview-container").classList.add("hidden");
           document.getElementById("img-preview").src = "";
         }
-
         if (message) {
           await apiRequest(`/chat/${groupId}`, {
             method: "POST",
             body: JSON.stringify({ message }),
           });
         }
-
         await loadMessages();
         scrollToBottom();
       } catch (e) {
@@ -253,9 +510,6 @@
       }
     }
 
-    let pendingImageFile = null;
-
-    document.getElementById("btn-send").addEventListener("click", sendMessage);
     document.getElementById("msg-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendMessage();
     });
@@ -264,8 +518,7 @@
       const file = e.target.files[0];
       if (!file) return;
       pendingImageFile = file;
-      const preview = document.getElementById("img-preview");
-      preview.src = URL.createObjectURL(file);
+      document.getElementById("img-preview").src = URL.createObjectURL(file);
       document.getElementById("img-preview-container").classList.remove("hidden");
     });
 
@@ -279,8 +532,19 @@
     async function init() {
       await loadCurrentUser();
       await loadGroup();
+      await loadGroupMissions();
+
+      // Auto-résout les validations expirées au chargement
+      try {
+        await apiRequest(`/task-validation/group/${groupId}/resolve`, { method: "POST" });
+      } catch (_) {}
+
       await loadMessages();
       scrollToBottom();
+
+      document.getElementById("btn-missions").addEventListener("click", () => {
+        window.location.href = `missions-groupe.html#${groupId}`;
+      });
 
       pollingInterval = setInterval(loadMessages, 3000);
     }
