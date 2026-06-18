@@ -113,25 +113,47 @@
           return;
         }
 
-        container.innerHTML = groups.map(g => `
+        let currentUser = null;
+        try { currentUser = await apiRequest("/users/me"); } catch (_) {}
+
+        // Récupère le dernier message de chaque groupe
+        const groupsWithLastMessage = await Promise.all(groups.map(async (g) => {
+          let lastMessage = null;
+          try {
+            const messages = await apiRequest(`/chat/${g.id}`);
+            if (messages.length) lastMessage = messages[messages.length - 1];
+          } catch (_) {}
+          return { ...g, lastMessage };
+        }));
+
+        container.innerHTML = `<div style="margin: 0 -20px;">` + groupsWithLastMessage.map(g => {
+          let previewText = "Aucun message pour l'instant";
+          if (g.lastMessage) {
+            const senderName = g.lastMessage.user?.username ?? '';
+            if (g.lastMessage.imageUrl) {
+              previewText = `${senderName} a envoyé une photo`;
+            } else if (g.lastMessage.message) {
+              previewText = `${senderName} : ${g.lastMessage.message}`;
+            }
+          }
+
+          return `
           <div onclick="window.location.href='chat-groupe.html#${g.id}'"
-            class="flex items-center gap-4 py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors rounded-xl px-2 -mx-2">
+            class="flex items-center gap-3 px-5 py-3 border-b border-gray-200 cursor-pointer" style="background:#F1D9C8;">
             <div class="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center font-bold text-lg"
               style="background:#e8cebb; color:#2D241F;">
-              ${g.name.charAt(0).toUpperCase()}
+              ${g.imageUrl ? `<img src="http://localhost:3000${g.imageUrl}" class="w-full h-full object-cover" />` : g.name.charAt(0).toUpperCase()}
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-bold text-sm mb-1" style="color:#2D241F;">${g.name}</p>
-              <p class="text-xs truncate" style="color:#7a6255;">${g.users?.length ?? 0} membre${g.users?.length > 1 ? 's' : ''}</p>
+            <div class="flex-1 min-w-0 flex flex-col gap-1.5">
+              <div class="px-3 py-1.5 inline-block" style="background:#fff; width:fit-content; max-width:100%; border-radius: 12px 12px 12px 0;">
+                <p class="font-bold text-sm truncate" style="color:#2D241F;">${g.name}</p>
+              </div>
+              <div class="px-3 py-1.5" style="background:#fff; border-radius: 0 12px 12px 12px;">
+                <p class="text-xs truncate" style="color:#7a6255;">${previewText}</p>
+              </div>
             </div>
-            <div class="flex-shrink-0">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A50329" stroke-width="2">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
-            </div>
-          </div>
-        `).join("");
+          </div>`;
+        }).join("") + `</div>`;
       } catch (e) {
         container.innerHTML = `<p class="text-sm text-center mt-8" style="color:#A50329;">Erreur de chargement.</p>`;
       }

@@ -35,7 +35,6 @@
   <!-- CONTENU -->
   <main class="flex-1 px-5 pt-6 pb-32">
 
-    <!-- Recherche -->
     <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">RECHERCHER UN UTILISATEUR</p>
     <div class="flex gap-2 mb-6">
       <input id="search-input" type="text" placeholder="Recherche par pseudo..."
@@ -48,17 +47,14 @@
       </button>
     </div>
 
-    <!-- Résultats recherche -->
     <div id="search-results" class="mb-8"></div>
 
-    <!-- Bouton voir mes amis -->
     <button id="btn-voir-amis"
       class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide mb-6"
       style="background:#B4C8C5; color:#2D241F; font-family: 'Rammetto One', cursive;">
       VOIR MES AMIS
     </button>
 
-    <!-- Liste amis -->
     <div id="friends-list" class="hidden">
       <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">MES AMIS</p>
       <div id="friends-container"></div>
@@ -68,37 +64,31 @@
 
   <!-- FOOTER FIXE -->
   <footer class="fixed bottom-0 left-0 right-0 flex items-end justify-around px-4 pb-4 pt-2 max-w-md mx-auto" style="background: linear-gradient(to top, #F1D9C8 70%, transparent);">
-
     <a href="groupe.html" class="flex flex-col items-center">
       <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background:#d4b9a8;">
         <img src="img/assets/groupe.png" alt="groupes" class="w-9 h-9 object-contain" />
       </div>
     </a>
-
     <a href="blog.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/book.png" alt="blog" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="index.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/home.png" alt="accueil" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="custom.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/pate.png" alt="mascotte" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
     <a href="profil.html" class="flex flex-col items-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#e8cebb;">
         <img src="img/assets/user.png" alt="profil" class="w-7 h-7 object-contain" />
       </div>
     </a>
-
   </footer>
 
   <script type="module">
@@ -108,7 +98,9 @@
 
     if (!getToken()) window.location.href = "login.html";
 
-    // Notif count
+    let currentUser = null;
+    let myFriends = [];
+
     async function loadNotifCount() {
       try {
         const data = await apiRequest("/friends/pending/count");
@@ -120,7 +112,6 @@
       } catch (_) {}
     }
 
-    // Recherche utilisateur
     document.getElementById("btn-search").addEventListener("click", async () => {
       const query = document.getElementById("search-input").value.trim();
       if (!query) return;
@@ -131,45 +122,48 @@
       try {
         const users = await apiRequest(`/friends/search?username=${encodeURIComponent(query)}`);
 
-        if (!users.length) {
+        // Filtre l'utilisateur connecté
+        const filtered = users.filter(u => u.id !== currentUser?.id);
+
+        if (!filtered.length) {
           container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun utilisateur trouvé.</p>`;
           return;
         }
 
-        container.innerHTML = users.map(u => `
-          <div class="flex items-center justify-between py-3 border-b border-gray-100">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full overflow-hidden" style="background:#e8cebb;">
-                ${u.avatar ? `<img src="${API_URL}${u.avatar}" class="w-full h-full object-cover" />` : ''}
+        container.innerHTML = filtered.map(u => {
+          const isFriend = myFriends.some(f => f.id === u.id);
+          return `
+            <div class="flex items-center justify-between py-3 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full overflow-hidden" style="background:#e8cebb;">
+                  ${u.avatar ? `<img src="${API_URL}${u.avatar}" class="w-full h-full object-cover" />` : ''}
+                </div>
+                <div>
+                  <p class="font-semibold text-sm" style="color:#2D241F;">@${u.username}</p>
+                  ${u.firstname || u.lastname ? `<p class="text-xs" style="color:#7a6255;">${u.firstname ?? ''} ${u.lastname ?? ''}</p>` : ''}
+                </div>
               </div>
-              <div>
-                <p class="font-semibold text-sm" style="color:#2D241F;">@${u.username}</p>
-                ${u.firstname || u.lastname ? `<p class="text-xs" style="color:#7a6255;">${u.firstname ?? ''} ${u.lastname ?? ''}</p>` : ''}
+              <div class="flex gap-2">
+                <button onclick="viewProfile(${u.id})"
+                  class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 hover:bg-gray-50 transition-colors" style="color:#2D241F;">
+                  Voir
+                </button>
+                ${isFriend
+                  ? `<button disabled class="px-3 py-1.5 rounded-xl text-xs font-semibold border" style="border-color:#ccc; color:#ccc; opacity:0.5; cursor:not-allowed;">Déjà ami</button>`
+                  : `<button onclick="sendRequest(${u.id}, this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors" style="border-color:#255B54; color:#255B54;">+ Ami</button>`
+                }
               </div>
-            </div>
-            <div class="flex gap-2">
-              <button onclick="viewProfile(${u.id})"
-                class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 hover:bg-gray-50 transition-colors" style="color:#2D241F;">
-                Voir
-              </button>
-              <button onclick="sendRequest(${u.id}, this)"
-                class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors" style="border-color:#255B54; color:#255B54;">
-                + Ami
-              </button>
-            </div>
-          </div>
-        `).join("");
+            </div>`;
+        }).join("");
       } catch (e) {
         container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
       }
     });
 
-    // Recherche avec Enter
     document.getElementById("search-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") document.getElementById("btn-search").click();
     });
 
-    // Envoyer une demande d'ami
     window.sendRequest = async (userId, btn) => {
       try {
         await apiRequest(`/friends/request/${userId}`, { method: "POST" });
@@ -177,17 +171,15 @@
         btn.disabled = true;
         btn.style.opacity = "0.5";
       } catch (e) {
-        btn.textContent = "Déjà ami";
+        btn.textContent = "Erreur";
         btn.disabled = true;
       }
     };
 
-    // Voir profil
     window.viewProfile = (userId) => {
       window.location.href = `userprofil.html#${userId}`;
     };
 
-    // Voir mes amis
     let friendsVisible = false;
     document.getElementById("btn-voir-amis").addEventListener("click", async () => {
       const container = document.getElementById("friends-container");
@@ -202,6 +194,7 @@
 
       try {
         const friends = await apiRequest("/friends/list");
+        myFriends = friends;
         if (!friends.length) {
           container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Tu n'as pas encore d'amis.</p>`;
         } else {
@@ -226,7 +219,15 @@
       }
     });
 
-    loadNotifCount();
+    async function init() {
+      try {
+        currentUser = await apiRequest("/users/me");
+        myFriends = await apiRequest("/friends/list");
+      } catch (_) {}
+      loadNotifCount();
+    }
+
+    init();
   </script>
 
 </body>

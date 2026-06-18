@@ -13,7 +13,7 @@
 
   <!-- HEADER -->
   <header class="w-full flex items-center justify-between px-4" style="background:#2D241F; height: 60px;">
-    <a href="javascript:history.back()">
+    <a id="btn-back" href="#">
       <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#3d322c;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
@@ -28,10 +28,9 @@
   <main class="flex-1 px-5 pt-6 pb-32">
 
     <!-- Bouton titre -->
-    <button class="w-full py-4 rounded-2xl font-bold text-sm tracking-wide mb-8"
-      style="background:#255B54; color:#F1D9C8; font-family:'Rammetto One',cursive;">
-      CRÉER NOS PROPRES MISSIONS
-    </button>
+    <div class="py-4 px-5 mb-8 inline-block" style="background:#255B54; border-radius: 16px 16px 16px 0;">
+      <span style="font-family:'Rammetto One',cursive; color:#fff; font-size:14px;">CRÉER NOS PROPRES MISSIONS</span>
+    </div>
 
     <!-- Nom -->
     <p class="font-bold text-sm mb-2" style="color:#2D241F;">Nom de la mission</p>
@@ -108,6 +107,8 @@
 
     const groupId = window.location.hash.replace("#", "");
     if (!groupId) window.location.href = "groupe.html";
+
+    document.getElementById("btn-back").href = `missions-groupe.html#${groupId}`;
 
     const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
     let selectedDays = [];
