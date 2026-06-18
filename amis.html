@@ -93,6 +93,7 @@
 
   <script type="module">
     import { getToken, apiRequest } from "./js/api.js";
+    import { loadNotifBadge } from "./js/notif-badge.js";
 
     const API_URL = "http://localhost:3000";
 
@@ -100,17 +101,6 @@
 
     let currentUser = null;
     let myFriends = [];
-
-    async function loadNotifCount() {
-      try {
-        const data = await apiRequest("/friends/pending/count");
-        const badge = document.getElementById("notif-count");
-        if (data.count > 0) {
-          badge.textContent = data.count;
-          badge.classList.remove("hidden");
-        }
-      } catch (_) {}
-    }
 
     document.getElementById("btn-search").addEventListener("click", async () => {
       const query = document.getElementById("search-input").value.trim();
@@ -224,7 +214,7 @@
         currentUser = await apiRequest("/users/me");
         myFriends = await apiRequest("/friends/list");
       } catch (_) {}
-      loadNotifCount();
+      loadNotifBadge();
     }
 
     init();
