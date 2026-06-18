@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koda — Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rammetto+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen flex flex-col" style="background:#faf6f2;">
+
+  <!-- HEADER -->
+  <header class="w-full flex items-center justify-between px-4" style="background:#2D241F; height: 60px;">
+    <a href="profil.html">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#3d322c;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F1D9C8" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+    </a>
+    <span style="font-family:'Rammetto One',cursive; color:#fff; font-size:16px;">MENU ADMIN</span>
+    <div class="w-8"></div>
+  </header>
+
+  <!-- CONTENU -->
+  <main class="flex-1 px-5 pt-6 pb-10">
+
+    <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">RECHERCHER UN UTILISATEUR</p>
+    <input id="search-input" type="text" placeholder="Rechercher par pseudo ou email..."
+      class="w-full px-4 py-3 rounded-xl text-sm outline-none mb-6"
+      style="background:#fff; border:1px solid #e8e8e8; color:#2D241F;" />
+
+    <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">UTILISATEURS</p>
+    <div id="users-list">
+      <p class="text-sm" style="color:#7a6255;">Chargement...</p>
+    </div>
+
+    <p class="text-xs font-semibold tracking-widest mb-3 mt-8" style="color:#7a6255;">CRÉER LA MISSION DU JOUR</p>
+    <div class="rounded-2xl p-4 mb-8" style="background:#F1D9C8;">
+      <input id="dm-title" type="text" placeholder="Titre (ex: Marcher 8000 pas)"
+        class="w-full px-4 py-3 rounded-xl text-sm outline-none mb-2"
+        style="background:#fff; border:1px solid #e8e8e8; color:#2D241F;" />
+      <textarea id="dm-description" placeholder="Description"
+        class="w-full px-4 py-3 rounded-xl text-sm outline-none mb-2 resize-none h-20"
+        style="background:#fff; border:1px solid #e8e8e8; color:#2D241F;"></textarea>
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <input id="dm-target-steps" type="number" placeholder="Objectif de pas"
+          class="w-full px-4 py-3 rounded-xl text-sm outline-none min-w-0"
+          style="background:#fff; border:1px solid #e8e8e8; color:#2D241F;" />
+        <input id="dm-points" type="number" placeholder="Points"
+          class="w-full px-4 py-3 rounded-xl text-sm outline-none min-w-0"
+          style="background:#fff; border:1px solid #e8e8e8; color:#2D241F;" />
+      </div>
+      <p class="text-xs mb-2" style="color:#7a6255;">Choisir le jour</p>
+      <div id="dm-days-selector" class="grid grid-cols-5 gap-2 mb-3" style="max-height:200px; overflow-y:auto;"></div>
+      <button id="btn-create-dm" class="w-full py-3 rounded-xl font-bold text-sm" style="background:#A50329; color:#fff;">
+        Créer la mission du jour
+      </button>
+      <p id="dm-error" class="text-xs text-center mt-2" style="color:#A50329;"></p>
+    </div>
+
+    <p class="text-xs font-semibold tracking-widest mb-3" style="color:#7a6255;">MISSIONS DU JOUR EXISTANTES</p>
+    <div id="daily-missions-list" class="mb-8">
+      <p class="text-sm" style="color:#7a6255;">Chargement...</p>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { getToken, apiRequest } from "./js/api.js";
+
+    const API_URL = "http://localhost:3000";
+    if (!getToken()) window.location.href = "login.html";
+
+    let allUsers = [];
+    let currentUser = null;
+    let selectedDmDate = null;
+    let existingDailyDates = [];
+
+    function toLocalDateStr(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function generateDaysSelector() {
+      const container = document.getElementById("dm-days-selector");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let html = "";
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const dateStr = toLocalDateStr(d);
+        const dayLabel = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+        const dayNum = d.getDate();
+        const monthLabel = d.toLocaleDateString('fr-FR', { month: 'short' });
+        const alreadyExists = existingDailyDates.includes(dateStr);
+
+        html += `
+          <button type="button" ${alreadyExists ? 'disabled' : ''} onclick="selectDmDate('${dateStr}', this)"
+            id="dm-day-${dateStr}"
+            class="flex flex-col items-center justify-center py-2 rounded-xl text-xs font-semibold transition-colors"
+            style="background:${alreadyExists ? '#e8e0d8' : '#fff'}; color:${alreadyExists ? '#ccc' : '#2D241F'}; border:1.5px solid ${alreadyExists ? '#e8e0d8' : '#e8e8e8'}; ${alreadyExists ? 'cursor:not-allowed;' : 'cursor:pointer;'}">
+            <span>${dayLabel}</span>
+            <span class="font-bold">${dayNum}</span>
+            <span style="font-size:10px;">${monthLabel}</span>
+          </button>`;
+      }
+      container.innerHTML = html;
+    }
+
+    window.selectDmDate = (dateStr, btn) => {
+      if (selectedDmDate) {
+        const oldBtn = document.getElementById(`dm-day-${selectedDmDate}`);
+        if (oldBtn) {
+          oldBtn.style.background = "#fff";
+          oldBtn.style.color = "#2D241F";
+          oldBtn.style.borderColor = "#e8e8e8";
+        }
+      }
+      selectedDmDate = dateStr;
+      btn.style.background = "#A50329";
+      btn.style.color = "#fff";
+      btn.style.borderColor = "#A50329";
+    };
+
+    function renderUsers(users) {
+      const container = document.getElementById("users-list");
+      if (!users.length) {
+        container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun utilisateur trouvé.</p>`;
+        return;
+      }
+      container.innerHTML = `<div style="margin:0 -20px;">` + users.map(u => `
+        <div class="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-200" style="background:${u.isActive ? '#F1D9C8' : '#e8e0d8'};">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0" style="background:#e8cebb;">
+              ${u.avatar ? `<img src="${API_URL}${u.avatar}" class="w-full h-full object-cover" />` : ''}
+            </div>
+            <div class="min-w-0">
+              <p class="font-bold text-sm truncate" style="color:#2D241F;">@${u.username}</p>
+              <p class="text-xs truncate" style="color:#7a6255;">${u.mail} · ${u.role}${!u.isActive ? ' · désactivé' : ''}</p>
+            </div>
+          </div>
+          ${u.id === currentUser?.id
+            ? `<span class="text-xs flex-shrink-0" style="color:#7a6255;">Toi</span>`
+            : u.isActive
+              ? `<button onclick="toggleActive(${u.id}, false, this)" class="px-3 py-1.5 rounded-xl text-xs font-bold border flex-shrink-0" style="border-color:#A50329; color:#A50329;">Désactiver</button>`
+              : `<button onclick="toggleActive(${u.id}, true, this)" class="px-3 py-1.5 rounded-xl text-xs font-bold border flex-shrink-0" style="border-color:#255B54; color:#255B54;">Réactiver</button>`
+          }
+        </div>
+      `).join("") + `</div>`;
+    }
+
+    window.toggleActive = async (userId, isActive, btn) => {
+      const action = isActive ? "réactiver" : "désactiver";
+      if (!confirm(`Confirmer : ${action} cet utilisateur ?`)) return;
+      try {
+        await apiRequest(`/users/admin/${userId}/active`, {
+          method: "PATCH",
+          body: JSON.stringify({ isActive }),
+        });
+        await loadUsers();
+      } catch (e) {
+        alert("Erreur : " + e.message);
+      }
+    };
+
+    document.getElementById("search-input").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = q
+        ? allUsers.filter(u => u.username.toLowerCase().includes(q) || u.mail.toLowerCase().includes(q))
+        : allUsers;
+      renderUsers(filtered);
+    });
+
+    function formatDateFR(dateStr) {
+      // Extrait directement YYYY-MM-DD sans passer par new Date() pour éviter tout décalage de fuseau
+      const datePart = String(dateStr).split('T')[0];
+      const [year, month, day] = datePart.split('-').map(Number);
+      const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      return `${day} ${months[month - 1]} ${year}`;
+    }
+
+    async function loadDailyMissions() {
+      const container = document.getElementById("daily-missions-list");
+      try {
+        const missions = await apiRequest("/tasks/admin/daily-missions");
+        existingDailyDates = missions.map(m => String(m.date).split('T')[0]);
+        generateDaysSelector();
+
+        if (!missions.length) {
+          container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucune mission du jour créée pour l'instant.</p>`;
+          return;
+        }
+        container.innerHTML = missions.map(m => `
+          <div class="rounded-2xl px-4 py-3 mb-2" style="background:#F1D9C8;">
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-bold text-sm" style="color:#2D241F;">${m.title}</p>
+              <span class="text-xs font-semibold" style="color:#A50329;">${formatDateFR(m.date)}</span>
+            </div>
+            <p class="text-xs mb-1" style="color:#7a6255;">${m.description}</p>
+            <p class="text-xs" style="color:#255B54;">Objectif : ${m.targetSteps} pas · ${m.points} pts</p>
+          </div>
+        `).join("");
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+      }
+    }
+
+    document.getElementById("btn-create-dm").addEventListener("click", async () => {
+      const title = document.getElementById("dm-title").value.trim();
+      const description = document.getElementById("dm-description").value.trim();
+      const targetSteps = document.getElementById("dm-target-steps").value;
+      const points = document.getElementById("dm-points").value;
+      const errorEl = document.getElementById("dm-error");
+      errorEl.textContent = "";
+
+      if (!title || !description || !targetSteps || !selectedDmDate) {
+        errorEl.style.color = "#A50329";
+        errorEl.textContent = "Tous les champs sont requis (sauf points), et un jour doit être sélectionné.";
+        return;
+      }
+
+      const btn = document.getElementById("btn-create-dm");
+      btn.textContent = "Création...";
+      btn.disabled = true;
+
+      try {
+        await apiRequest("/tasks/admin/daily-mission", {
+          method: "POST",
+          body: JSON.stringify({
+            title,
+            description,
+            targetSteps: Number(targetSteps),
+            points: points ? Number(points) : 0,
+            date: selectedDmDate,
+          }),
+        });
+        document.getElementById("dm-title").value = "";
+        document.getElementById("dm-description").value = "";
+        document.getElementById("dm-target-steps").value = "";
+        document.getElementById("dm-points").value = "";
+        selectedDmDate = null;
+        errorEl.style.color = "#255B54";
+        errorEl.textContent = "Mission du jour créée avec succès !";
+        loadDailyMissions();
+      } catch (e) {
+        errorEl.style.color = "#A50329";
+        errorEl.textContent = e.message || "Erreur lors de la création.";
+      } finally {
+        btn.textContent = "Créer la mission du jour";
+        btn.disabled = false;
+      }
+    });
+
+    async function loadUsers() {
+      try {
+        currentUser = await apiRequest("/users/me");
+        if (currentUser.role !== 'admin') {
+          document.body.innerHTML = `<p class="text-center mt-10" style="color:#A50329;">Accès réservé aux administrateurs.</p>`;
+          return;
+        }
+        allUsers = await apiRequest("/users/admin/all");
+        renderUsers(allUsers);
+      } catch (e) {
+        document.getElementById("users-list").innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+      }
+    }
+
+    loadUsers();
+    loadDailyMissions();
+  </script>
+
+</body>
+</html>

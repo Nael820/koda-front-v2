@@ -32,34 +32,51 @@
   </header>
 
   <!-- CONTENU -->
-  <main class="flex-1 pb-32">
+  <main class="flex-1 pb-32" style="background:#faf6f2;">
 
     <!-- Bannière + Avatar -->
     <div class="relative mb-16">
-      <div class="w-full h-36 overflow-hidden" style="background:#e8cebb;">
+      <div class="w-full h-44 overflow-hidden" style="background:#e8cebb;">
         <img id="banner-img" src="" alt="bannière" class="w-full h-full object-cover hidden" />
       </div>
-      <div class="absolute left-1/2 -translate-x-1/2 -bottom-10">
-        <div class="w-20 h-20 rounded-full border-4 border-white overflow-hidden" style="background:#d4b9a8;">
+      <div class="absolute left-1/2 -translate-x-1/2 -bottom-12">
+        <div class="w-24 h-24 rounded-full border-4 overflow-hidden" style="border-color:#A50329; background:#d4b9a8;">
           <img id="avatar-img" src="" alt="avatar" class="w-full h-full object-cover hidden" />
         </div>
       </div>
     </div>
 
     <!-- Infos -->
-    <div class="flex flex-col items-center px-5 mb-5">
-      <p id="pseudo" class="text-sm mb-1" style="color:#7a6255;">@pseudo</p>
-      <h1 id="fullname" class="text-xl font-bold mb-1 text-center" style="color:#fff; background:#A50329; border-radius: 10px; padding: 4px 18px; font-family: 'Rammetto One', cursive;"></h1>
+    <div class="flex flex-col items-center px-5 mb-3">
+      <p id="pseudo" class="text-sm mb-3" style="color:#7a6255;">@pseudo</p>
+      <h1 id="fullname" class="text-lg font-bold mb-2 text-center" style="color:#fff; background:#A50329; border-radius: 12px; padding: 8px 24px;"></h1>
+      <p id="friends-count" class="text-sm font-semibold" style="color:#2D241F;"></p>
     </div>
 
     <!-- Bio -->
-    <div class="mx-5 mb-5 rounded-2xl px-4 py-4" style="background:#f7f7f7;">
-      <p id="bio" class="text-sm" style="color:#2D241F;">Aucune biographie renseignée.</p>
+    <div class="mx-5 mt-2 mb-5 rounded-2xl px-4 py-4" style="background:#F1D9C8;">
+      <p id="bio" class="text-sm leading-relaxed" style="color:#2D241F; overflow-wrap:break-word; word-break:break-word; white-space:pre-wrap;">Aucune biographie renseignée.</p>
     </div>
 
     <!-- Tags -->
     <div id="tags-container" class="flex flex-wrap gap-2 px-5 mb-6">
       <!-- tags chargés dynamiquement -->
+    </div>
+
+    <!-- Graphique de progression -->
+    <div class="px-5 mb-6">
+      <div id="progression-chart" class="rounded-2xl p-4" style="background:#faf6f2;">
+        <p class="text-sm" style="color:#7a6255;">Chargement...</p>
+      </div>
+    </div>
+
+    <!-- Bouton menu admin (visible uniquement pour les admins) -->
+    <div id="admin-button-container" class="hidden px-5 mb-6">
+      <button onclick="window.location.href='admin.html'"
+        class="w-full py-3 rounded-2xl font-bold text-sm tracking-wide"
+        style="background:#2D241F; color:#fff; font-family:'Rammetto One',cursive;">
+        MENU ADMIN
+      </button>
     </div>
 
   </main>
@@ -118,7 +135,13 @@
         : user.username;
       document.getElementById("fullname").textContent = fullname;
 
-      // Stats supprimées
+      // Nombre d'amis
+      try {
+        const friends = await apiRequest("/friends/list");
+        document.getElementById("friends-count").textContent = `${friends.length} Ami${friends.length > 1 ? 's' : ''}`;
+      } catch (_) {
+        document.getElementById("friends-count").textContent = "0 Ami";
+      }
 
       // Bio
       if (user.bio) {
@@ -131,12 +154,20 @@
           const tags = JSON.parse(user.tags);
           const container = document.getElementById("tags-container");
           container.innerHTML = tags.map(tag => `
-            <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:#F1D9C8; color:#2D241F;">
+            <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:#FF7700; color:#fff;">
               ${tag}
             </span>
           `).join("");
         } catch (_) {}
       }
+
+      // Bouton menu admin
+      if (user.role === 'admin') {
+        document.getElementById("admin-button-container").classList.remove("hidden");
+      }
+
+      // Graphique de progression
+      loadProgressionChart();
 
       // Avatar
       if (user.avatar) {
@@ -150,6 +181,84 @@
         const img = document.getElementById("banner-img");
         img.src = `${API_URL}${user.banner}`;
         img.classList.remove("hidden");
+      }
+    }
+
+    async function loadProgressionChart() {
+      const container = document.getElementById("progression-chart");
+      try {
+        const data = await apiRequest("/tasks/progression-stats");
+        const points = data.points;
+
+        if (!points.length || points.every(p => p.value === 0)) {
+          container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Pas encore assez de données pour afficher ta régularité.</p>`;
+          return;
+        }
+
+        const width = 320;
+        const height = 140;
+        const padding = 30;
+        const maxVal = Math.max(10, ...points.map(p => p.value));
+        const stepX = (width - padding * 2) / (points.length - 1 || 1);
+
+        const coords = points.map((p, i) => {
+          const x = padding + i * stepX;
+          const y = height - padding - (p.value / maxVal) * (height - padding * 2);
+          return { x, y, label: p.label, value: p.value };
+        });
+
+        const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+
+        let labelIndices;
+        if (data.scale === 'day') {
+          const numLabels = Math.min(4, coords.length);
+          const step = (coords.length - 1) / (numLabels - 1 || 1);
+          labelIndices = new Set();
+          for (let i = 0; i < numLabels; i++) {
+            labelIndices.add(Math.round(i * step));
+          }
+        } else if (data.scale === 'week') {
+          labelIndices = new Set([0, Math.floor(coords.length / 2), coords.length - 1]);
+        } else {
+          labelIndices = new Set(coords.map((_, i) => i));
+        }
+
+        const periodLabel = points.length
+          ? `Du ${points[0].label} au ${points[points.length - 1].label}`
+          : '';
+
+        const svg = `
+          <svg viewBox="0 0 ${width} ${height + 20}" style="width:100%; height:auto;">
+            <line x1="${padding}" y1="${padding}" x2="${width - padding}" y2="${padding}" stroke="#e8e0d8" stroke-width="1" />
+            <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#e8e0d8" stroke-width="1" />
+            <text x="${padding - 8}" y="${padding + 4}" font-size="10" fill="#A50329" text-anchor="end">${maxVal}</text>
+            <text x="${padding - 8}" y="${height - padding + 4}" font-size="10" fill="#A50329" text-anchor="end">0</text>
+            <path d="${pathD}" fill="none" stroke="#A50329" stroke-width="2" />
+            ${coords.map((c, i) => i === coords.length - 1
+              ? `<circle cx="${c.x}" cy="${c.y}" r="4" fill="#255B54" />`
+              : ''
+            ).join('')}
+            ${coords.map((c, i) => labelIndices.has(i)
+              ? `<text x="${c.x}" y="${height + 12}" font-size="9" fill="#A50329" font-weight="bold" text-anchor="middle">${c.label}</text>`
+              : ''
+            ).join('')}
+          </svg>`;
+
+        container.innerHTML = `
+          <p class="text-sm font-bold mb-3" style="color:#2D241F;">${periodLabel}</p>
+          <div class="flex gap-8 mb-4">
+            <div>
+              <p class="text-xs mb-1" style="color:#7a6255;">Nombre de missions</p>
+              <p class="text-sm font-bold" style="color:#2D241F;">${data.totalMissions} mission${data.totalMissions > 1 ? 's' : ''}</p>
+            </div>
+            <div>
+              <p class="text-xs mb-1" style="color:#7a6255;">Nombre de points</p>
+              <p class="text-sm font-bold" style="color:#2D241F;">${data.totalPoints} points</p>
+            </div>
+          </div>
+          ${svg}`;
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur de chargement du graphique.</p>`;
       }
     }
 

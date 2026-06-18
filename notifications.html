@@ -34,6 +34,11 @@
   <!-- CONTENU -->
   <main class="flex-1 px-5 pt-6 pb-32">
 
+    <p class="text-xs font-semibold tracking-widest mb-5" style="color:#7a6255;">RAPPELS DU JOUR</p>
+    <div id="reminders-list" class="mb-8">
+      <p class="text-sm" style="color:#7a6255;">Chargement...</p>
+    </div>
+
     <p class="text-xs font-semibold tracking-widest mb-5" style="color:#7a6255;">DEMANDES D'AMIS</p>
 
     <div id="pending-list">
@@ -83,6 +88,65 @@
     const API_URL = "http://localhost:3000";
 
     if (!getToken()) window.location.href = "login.html";
+
+    function parseTimeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + (m || 0);
+    }
+
+    function getDismissedReminders() {
+      try {
+        return JSON.parse(sessionStorage.getItem('dismissedReminders') || '[]');
+      } catch { return []; }
+    }
+
+    function dismissReminder(taskId) {
+      const dismissed = getDismissedReminders();
+      dismissed.push(taskId);
+      sessionStorage.setItem('dismissedReminders', JSON.stringify(dismissed));
+    }
+
+    async function loadReminders() {
+      const container = document.getElementById("reminders-list");
+      try {
+        const reminders = await apiRequest("/tasks/reminders");
+
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const dismissed = getDismissedReminders();
+
+        const visibleReminders = reminders.filter(r => {
+          if (dismissed.includes(r.taskId)) return false;
+          const reminderMinutes = parseTimeToMinutes(r.reminderTime);
+          return currentMinutes >= reminderMinutes;
+        });
+
+        if (!visibleReminders.length) {
+          container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun rappel pour le moment.</p>`;
+          return;
+        }
+
+        container.innerHTML = visibleReminders.map(r => `
+          <div id="reminder-${r.taskId}" onclick="goToReminder(${r.taskId}, ${r.groupId})"
+            class="flex items-center justify-between py-3 px-4 mb-2 rounded-2xl cursor-pointer" style="background:#F1D9C8;">
+            <div>
+              <p class="font-semibold text-sm" style="color:#2D241F;">${r.title}</p>
+              <p class="text-xs" style="color:#7a6255;">Rappel à ${r.reminderTime}</p>
+            </div>
+            <img src="img/assets/groupe/arrow.png" alt="aller" class="w-5 h-5 object-contain" />
+          </div>
+        `).join("");
+      } catch (e) {
+        container.innerHTML = `<p class="text-sm" style="color:#A50329;">Erreur : ${e.message}</p>`;
+      }
+    }
+
+    window.goToReminder = (taskId, groupId) => {
+      dismissReminder(taskId);
+      if (groupId) {
+        window.location.href = `chat-groupe.html#${groupId}`;
+      }
+    };
 
     async function loadPending() {
       const container = document.getElementById("pending-list");
@@ -157,6 +221,7 @@
       }
     };
 
+    loadReminders();
     loadPending();
   </script>
 

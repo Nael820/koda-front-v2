@@ -35,9 +35,47 @@
 
   <!-- CONTENU -->
   <main class="flex-1 pb-28 px-5 pt-6">
-    <p class="font-bold text-base mb-4" style="font-family:'Rammetto One',cursive; color:#255B54;">MES MISSIONS DU JOUR</p>
-    <div id="missions-today" class="grid grid-cols-2 gap-3">
+
+    <div class="inline-block px-4 py-2 mb-4" style="background:#255B54; border-radius: 16px 16px 16px 0;">
+      <span style="font-family:'Rammetto One',cursive; color:#fff; font-size:14px;">MES MISSIONS DU JOUR</span>
+    </div>
+    <div id="missions-today" class="grid grid-cols-2 gap-3 mb-8">
       <p class="text-sm col-span-2" style="color:#7a6255;">Chargement...</p>
+    </div>
+
+    <!-- Mission du jour (admin) -->
+    <div id="daily-mission-section" class="hidden mb-8" style="margin: 0 -20px;">
+      <div class="px-5 py-5" style="background:#2D241F;">
+
+        <!-- Bloc 1 : Le défi du jour -->
+        <div class="flex items-center justify-between mb-3">
+          <div class="inline-block px-4 py-2" style="background:#F1D9C8; border-radius: 16px 16px 16px 0;">
+            <span style="font-family:'Rammetto One',cursive; color:#2D241F; font-size:14px;">LE DÉFI DU JOUR</span>
+          </div>
+          <a href="defi-du-jour.html" id="dm-voir-plus" class="text-xs font-semibold" style="color:#FF7700;">Voir plus</a>
+        </div>
+        <div id="daily-mission-card" class="mb-5"></div>
+
+        <!-- Bloc 2 : Ma série de réussites -->
+        <div class="inline-block px-4 py-2 mb-3" style="background:#F1D9C8; border-radius: 16px 16px 16px 0;">
+          <span style="font-family:'Rammetto One',cursive; color:#2D241F; font-size:14px;">MA SÉRIE DE RÉUSSITES</span>
+        </div>
+        <div class="rounded-2xl px-4 py-4" style="background:#fff;">
+          <div class="flex items-center gap-4">
+            <div class="flex flex-col items-center flex-shrink-0">
+              <img src="img/mascotte_progression.png" class="w-14 h-14 object-contain mb-1" alt="mascotte" />
+              <span class="font-bold text-sm" style="color:#A50329;" id="dm-streak">0 Jours</span>
+            </div>
+            <div class="flex-1">
+              <div id="dm-week" class="grid grid-cols-7 gap-1"></div>
+            </div>
+          </div>
+          <div class="text-right mt-3">
+            <a href="#" id="dm-voir-toutes" class="text-xs font-semibold" style="color:#255B54;">Voir toutes mes réussites</a>
+          </div>
+        </div>
+
+      </div>
     </div>
   </main>
 
@@ -83,6 +121,46 @@
       window.location.href = "login.html";
     }
 
+    async function loadDailyMission() {
+      const section = document.getElementById("daily-mission-section");
+      const card = document.getElementById("daily-mission-card");
+      try {
+        const dm = await apiRequest("/tasks/daily-mission/today");
+        if (!dm) return; // pas de mission du jour active
+
+        section.classList.remove("hidden");
+
+        card.innerHTML = `
+          <div class="rounded-2xl p-4" style="background:#fff;">
+            <p class="font-bold text-base mb-1" style="color:#255B54;">${dm.title}</p>
+            <p class="text-xs" style="color:#7a6255;">${dm.description}</p>
+          </div>`;
+      } catch (_) {}
+    }
+
+    async function loadDailyStreak() {
+      try {
+        const data = await apiRequest("/tasks/daily-mission/streak");
+        document.getElementById("dm-streak").textContent = `${data.streak} Jour${data.streak > 1 ? 's' : ''}`;
+
+        const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+        const weekContainer = document.getElementById("dm-week");
+        weekContainer.innerHTML = data.weekDays.map((d, i) => `
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs font-semibold" style="color:#2D241F;">${dayLabels[i]}</span>
+            <div class="w-7 h-7 flex items-center justify-center">
+              ${d.isFuture
+                ? ''
+                : d.validated
+                  ? `<img src="img/assets/pate_2.png" style="width:22px; height:22px; object-fit:contain;" alt="✓" />`
+                  : `<div class="w-6 h-6 rounded-full" style="background:#2D241F;"></div>`
+              }
+            </div>
+          </div>
+        `).join("");
+      } catch (_) {}
+    }
+
     function isValidableToday(frequency) {
       if (!frequency) return true;
       try {
@@ -108,7 +186,7 @@
         const allMissionsPerGroup = await Promise.all(groups.map(async (g) => {
           try {
             const missions = await apiRequest(`/tasks/group/${g.id}`);
-            return missions.map(m => ({ ...m, groupName: g.name }));
+            return missions.map(m => ({ ...m, groupName: g.name, groupImage: g.imageUrl ?? null }));
           } catch { return []; }
         }));
 
@@ -143,16 +221,19 @@
 
         container.innerHTML = top2.map(m => `
           <div onclick="window.location.href='mission-detail.html#${m.id}-${currentUser.id}'"
-            class="rounded-2xl overflow-hidden cursor-pointer" style="background:#fff; border:1px solid #f0f0f0;">
-            <div class="relative h-24 w-full">
-              <img src="img/fond.jpg" class="w-full h-full object-cover" alt="${m.title}" />
-              <div class="absolute -bottom-3 left-3 px-2 py-1 rounded-full text-xs font-semibold" style="background:#fff; color:#2D241F;">
-                ${m.groupName}
-              </div>
+            class="rounded-2xl overflow-hidden cursor-pointer p-2" style="background:#F1D9C8;">
+            <div class="rounded-xl overflow-hidden mb-2">
+              <img src="img/fond.jpg" class="w-full h-20 object-cover" alt="${m.title}" />
             </div>
-            <div class="px-3 pt-5 pb-3">
+            <div class="flex items-center rounded-full overflow-hidden mb-2" style="background:#fff; border:2px solid #2D241F; width:fit-content; max-width:100%;">
+              <div class="w-7 h-7 flex-shrink-0" style="background:#e8cebb;">
+                ${m.groupImage ? `<img src="http://localhost:3000${m.groupImage}" class="w-full h-full object-cover" />` : ''}
+              </div>
+              <span class="text-xs font-semibold truncate px-2.5" style="color:#2D241F;">${m.groupName}</span>
+            </div>
+            <div class="px-1 pb-1">
               <p class="font-bold text-sm mb-1" style="color:#2D241F;">${m.title}</p>
-              <p class="text-xs" style="color:#7a6255; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${m.description || ''}</p>
+              <p class="text-xs" style="color:#7a6255; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">${m.description || ''}</p>
             </div>
           </div>
         `).join("");
@@ -161,6 +242,8 @@
       }
     }
 
+    loadDailyMission();
+    loadDailyStreak();
     loadTodayMissions();
   </script>
 </body>
