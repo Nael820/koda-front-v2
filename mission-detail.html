@@ -112,63 +112,83 @@
 
     if (!taskId || !userId) window.location.href = "groupe.html";
 
-    const DAY_LABELS = ['D', 'L', 'Mar', 'Mer', 'J', 'V', 'S'];
-    const DAY_LABELS_FULL = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const DAY_LABELS_FULL = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+    function toLocalDateStr(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getMondayOfWeek(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const day = (d.getDay() + 6) % 7; // Lundi = 0, ..., Dimanche = 6
+      d.setDate(d.getDate() - day);
+      return d;
+    }
 
     function formatDateFR(dateStr) {
       return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(dateStr));
     }
 
-    function renderCalendar(days, frequency) {
+    function renderCalendar(days) {
       const container = document.getElementById("calendar");
       if (!days.length) {
         container.innerHTML = `<p class="text-sm" style="color:#7a6255;">Aucun jour à afficher.</p>`;
         return;
       }
 
-      // Groupe les jours par semaine (ligne de 7 = L M M J V S D)
-      // Récupère les jours de la fréquence
-      const dayMapFR = { 'Lundi': 1, 'Mardi': 2, 'Mercredi': 3, 'Jeudi': 4, 'Vendredi': 5, 'Samedi': 6, 'Dimanche': 0 };
-      let scheduledDayNumbers = [];
-      if (frequency) {
-        try {
-          const freq = JSON.parse(frequency);
-          scheduledDayNumbers = freq.map(d => dayMapFR[d]);
-        } catch {}
+      // Index rapide des jours connus par date
+      const daysMap = new Map(days.map(d => [d.date, d]));
+
+      // Détermine la première et la dernière date à afficher
+      const firstDate = days[0].date;
+      const lastDate = days[days.length - 1].date;
+
+      // Calcule les bornes de la grille en vraies semaines civiles (lundi à dimanche)
+      const gridStart = getMondayOfWeek(firstDate);
+      const gridEndMonday = getMondayOfWeek(lastDate);
+      const gridEnd = new Date(gridEndMonday);
+      gridEnd.setDate(gridEnd.getDate() + 6);
+
+      const today = toLocalDateStr(new Date());
+
+      // Construit chaque semaine, 7 jours par ligne, alignés sur le bon jour de la semaine
+      const weeks = [];
+      let cursor = new Date(gridStart);
+      while (cursor <= gridEnd) {
+        const week = [];
+        for (let i = 0; i < 7; i++) {
+          week.push(toLocalDateStr(cursor));
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        weeks.push(week);
       }
-
-      // En-têtes des jours programmés
-      const dayNames = scheduledDayNumbers.length
-        ? scheduledDayNumbers.map(n => DAY_LABELS_FULL[n])
-        : DAY_LABELS_FULL;
-
-      // Regroupe par semaines de 7 colonnes max
-      // On affiche les jours dans l'ordre chronologique, 7 par ligne
-      const chunkSize = dayNames.length;
-      const chunks = [];
-      for (let i = 0; i < days.length; i += chunkSize) {
-        chunks.push(days.slice(i, i + chunkSize));
-      }
-
-      const today = new Date().toISOString().split('T')[0];
 
       container.innerHTML = `
         <div style="background:#F1D9C8; border-radius:20px; padding:20px;">
           <p id="period-text" class="font-bold text-base mb-4" style="color:#2D241F;"></p>
-          <div class="grid mb-3" style="grid-template-columns: repeat(${dayNames.length}, 1fr); gap:8px;">
-            ${dayNames.map(d => `<div class="text-center text-sm font-bold" style="color:#2D241F;">${d}</div>`).join("")}
+          <div class="grid mb-3" style="grid-template-columns: repeat(7, 1fr); gap:8px;">
+            ${DAY_LABELS_FULL.map(d => `<div class="text-center text-sm font-bold" style="color:#2D241F;">${d}</div>`).join("")}
           </div>
-          ${chunks.map(chunk => `
-            <div class="grid mb-3" style="grid-template-columns: repeat(${dayNames.length}, 1fr); gap:8px;">
-              ${chunk.map(day => {
-                const isFuture = day.date > today;
-                const dateNum = new Date(day.date).getDate().toString().padStart(2, '0');
-                const monthNum = (new Date(day.date).getMonth() + 1).toString().padStart(2, '0');
+          ${weeks.map(week => `
+            <div class="grid mb-3" style="grid-template-columns: repeat(7, 1fr); gap:8px;">
+              ${week.map(dateStr => {
+                const day = daysMap.get(dateStr);
+                const [, mm, dd] = dateStr.split('-');
+
+                // Jour hors mission (pas dans la fréquence, ou hors période) : case vide invisible
+                if (!day) {
+                  return `<div class="day-cell"><div class="day-circle" style="background:transparent;"></div><span class="text-xs" style="color:transparent;">.</span></div>`;
+                }
+
+                const isFuture = dateStr > today;
                 if (isFuture) {
                   return `
                     <div class="day-cell">
                       <div class="day-circle future"></div>
-                      <span class="text-xs" style="color:#2D241F;">${dateNum}/${monthNum}</span>
+                      <span class="text-xs" style="color:#2D241F;">${dd}/${mm}</span>
                     </div>`;
                 } else if (day.validated) {
                   return `
@@ -176,13 +196,13 @@
                       <div class="day-circle validated">
                         <img src="img/assets/pate_2.png" class="pate-img" alt="✓" />
                       </div>
-                      <span class="text-xs" style="color:#2D241F;">${dateNum}/${monthNum}</span>
+                      <span class="text-xs" style="color:#2D241F;">${dd}/${mm}</span>
                     </div>`;
                 } else {
                   return `
                     <div class="day-cell">
                       <div class="day-circle not-validated"></div>
-                      <span class="text-xs" style="color:#2D241F;">${dateNum}/${monthNum}</span>
+                      <span class="text-xs" style="color:#2D241F;">${dd}/${mm}</span>
                     </div>`;
                 }
               }).join("")}
@@ -198,7 +218,7 @@
         document.getElementById("mission-title").textContent = data.title?.toUpperCase() ?? "MISSION";
 
         // Calendrier
-        renderCalendar(data.days, data.frequency);
+        renderCalendar(data.days);
 
         // Période (insérée dans le calendrier après rendu)
         const start = formatDateFR(data.startDate);
