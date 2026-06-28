@@ -256,7 +256,7 @@
 
       return `
         <div class="mt-2 pt-2 border-t border-gray-200">
-          <p class="text-xs font-semibold mb-1" style="color:#255B54;">📋 ${missionName}</p>
+          <p class="text-xs font-semibold mb-1" style="color:#255B54;">${missionName}</p>
           <p class="font-bold text-xs mb-1" style="color:#2D241F; font-family:'Rammetto One',cursive;">VALIDER LA MISSION ?</p>
           ${voteButtons}
         </div>`;
@@ -268,7 +268,7 @@
         const container = document.getElementById("messages-list");
 
         if (!messages.length) {
-          container.innerHTML = `<p class="text-xs text-center" style="color:#7a6255;">Aucun message pour l'instant. Dis bonjour ! 👋</p>`;
+          container.innerHTML = `<p class="text-xs text-center" style="color:#7a6255;">Aucun message pour l'instant. Dis bonjour !</p>`;
           return;
         }
 
